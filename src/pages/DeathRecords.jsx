@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -45,7 +45,6 @@ import {
   RecordsEmptyState,
 } from '../components/recordUi'
 import { displayValue } from '../utils/displayValue'
-import DeathOldRecordFormDialog from '../components/DeathRecordFormDialog'
 import CertificatePrepActions from '../components/CertificateGenerationPrep'
 import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
@@ -63,6 +62,10 @@ import {
   getDeceasedDisplayName,
   getRelatedPersonDisplayName,
 } from '../utils/personName'
+
+const DeathOldRecordFormDialog = lazy(
+  () => import('../components/DeathRecordFormDialog'),
+)
 
 const EMPTY_FILTERS = {
   recordTypes: [],
@@ -1042,15 +1045,19 @@ export default function DeathRecords() {
         onClose={handleCloseView}
       />
 
-      <DeathOldRecordFormDialog
-        open={formOpen}
-        mode={formMode}
-        record={formMode === 'edit' ? selectedRecord : null}
-        existingRecords={records}
-        saving={saving}
-        onClose={handleCloseForm}
-        onSave={handleSaveRecord}
-      />
+      {formOpen ? (
+        <Suspense fallback={null}>
+          <DeathOldRecordFormDialog
+            open
+            mode={formMode}
+            record={formMode === 'edit' ? selectedRecord : null}
+            existingRecords={records}
+            saving={saving}
+            onClose={handleCloseForm}
+            onSave={handleSaveRecord}
+          />
+        </Suspense>
+      ) : null}
 
       <Snackbar
         open={snackbar.open}

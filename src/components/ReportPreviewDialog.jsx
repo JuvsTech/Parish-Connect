@@ -19,7 +19,6 @@ import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined'
 import { MARIAN_BLUE } from '../theme/parishTheme'
 import ReportTemplate from './ReportTemplate'
 import { buildExportFileName } from '../services/reportService'
-import { exportReportPdf } from '../services/reportExport'
 
 /**
  * Single reusable Report Preview Dialog.
@@ -51,6 +50,7 @@ export default function ReportPreviewDialog({
     setExporting(true)
     try {
       const fileName = buildExportFileName(summary, 'pdf')
+      const { exportReportPdf } = await import('../services/reportExport')
       await exportReportPdf({
         summary,
         rows,

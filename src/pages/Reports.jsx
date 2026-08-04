@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -33,7 +33,6 @@ import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { MARIAN_BLUE, SOFT_SHADOW_HOVER } from '../theme/parishTheme'
 import PageHeader from '../components/PageHeader'
-import ReportPreviewDialog from '../components/ReportPreviewDialog'
 import { useAuth } from '../contexts/AuthContext'
 import { MESSAGES } from '../constants'
 import {
@@ -52,6 +51,10 @@ import {
   getReportSummaryCounts,
   saveReportMetadata,
 } from '../services/reportService'
+
+const ReportPreviewDialog = lazy(
+  () => import('../components/ReportPreviewDialog'),
+)
 
 const YEAR_OPTIONS = buildReportYearOptions(10)
 
@@ -692,14 +695,20 @@ export default function Reports() {
         </TableContainer>
       </Card>
 
-      <ReportPreviewDialog
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        summary={reportSummary}
-        rows={reportRows}
-        onExported={handlePreviewExported}
-        onExportError={() => showSnackbar(MESSAGES.ERROR.REPORT_EXPORT, 'error')}
-      />
+      {previewOpen ? (
+        <Suspense fallback={null}>
+          <ReportPreviewDialog
+            open
+            onClose={() => setPreviewOpen(false)}
+            summary={reportSummary}
+            rows={reportRows}
+            onExported={handlePreviewExported}
+            onExportError={() =>
+              showSnackbar(MESSAGES.ERROR.REPORT_EXPORT, 'error')
+            }
+          />
+        </Suspense>
+      ) : null}
 
       <Snackbar
         open={snackbar.open}

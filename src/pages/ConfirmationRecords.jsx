@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -36,7 +36,6 @@ import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined'
 import { MARIAN_BLUE } from '../theme/parishTheme'
 import { MESSAGES } from '../constants'
 import { getRequirementsSummary } from '../constants/sacramentRequirements'
-import ConfirmationOldRecordFormDialog from '../components/ConfirmationRecordFormDialog'
 import CertificatePrepActions from '../components/CertificateGenerationPrep'
 import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
@@ -68,6 +67,10 @@ import {
   resolveFemaleSponsorNameParts,
   resolveMaleSponsorNameParts,
 } from '../utils/personName'
+
+const ConfirmationOldRecordFormDialog = lazy(
+  () => import('../components/ConfirmationRecordFormDialog'),
+)
 
 const EMPTY_FILTERS = {
   recordTypes: [],
@@ -999,15 +1002,19 @@ export default function ConfirmationRecords() {
         onClose={handleCloseView}
       />
 
-      <ConfirmationOldRecordFormDialog
-        open={formOpen}
-        mode={formMode}
-        record={formMode === 'edit' ? selectedRecord : null}
-        existingRecords={records}
-        saving={saving}
-        onSave={handleSaveRecord}
-        onClose={handleCloseForm}
-      />
+      {formOpen ? (
+        <Suspense fallback={null}>
+          <ConfirmationOldRecordFormDialog
+            open
+            mode={formMode}
+            record={formMode === 'edit' ? selectedRecord : null}
+            existingRecords={records}
+            saving={saving}
+            onSave={handleSaveRecord}
+            onClose={handleCloseForm}
+          />
+        </Suspense>
+      ) : null}
 
       <Snackbar
         open={snackbar.open}

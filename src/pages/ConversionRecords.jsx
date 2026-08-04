@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -46,7 +46,6 @@ import {
   RecordsEmptyState,
 } from '../components/recordUi'
 import { displayValue } from '../utils/displayValue'
-import ConversionOldRecordFormDialog from '../components/ConversionRecordFormDialog'
 import CertificatePrepActions from '../components/CertificateGenerationPrep'
 import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
@@ -63,6 +62,10 @@ import {
   getFatherDisplayName,
   getMotherDisplayName,
 } from '../utils/personName'
+
+const ConversionOldRecordFormDialog = lazy(
+  () => import('../components/ConversionRecordFormDialog'),
+)
 
 const EMPTY_FILTERS = {
   recordYears: [],
@@ -972,15 +975,19 @@ export default function ConversionRecords() {
         onClose={handleCloseView}
       />
 
-      <ConversionOldRecordFormDialog
-        open={formOpen}
-        mode={formMode}
-        record={formMode === 'edit' ? selectedRecord : null}
-        existingRecords={records}
-        saving={saving}
-        onClose={handleCloseForm}
-        onSave={handleSaveRecord}
-      />
+      {formOpen ? (
+        <Suspense fallback={null}>
+          <ConversionOldRecordFormDialog
+            open
+            mode={formMode}
+            record={formMode === 'edit' ? selectedRecord : null}
+            existingRecords={records}
+            saving={saving}
+            onClose={handleCloseForm}
+            onSave={handleSaveRecord}
+          />
+        </Suspense>
+      ) : null}
 
       <Snackbar
         open={snackbar.open}

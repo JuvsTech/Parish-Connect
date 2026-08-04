@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -30,15 +30,45 @@ import PageHeader from '../components/PageHeader'
 import ScheduleSacramentDialog, {
   DateScheduleOverviewDialog,
 } from '../components/ScheduleSacramentDialog'
-import { BaptismNewRecordFormDialog } from '../components/BaptismRecordFormDialog'
-import { ConfirmationNewRecordFormDialog } from '../components/ConfirmationRecordFormDialog'
-import { MarriageNewRecordFormDialog } from '../components/MarriageRecordFormDialog'
-import { DeathNewRecordFormDialog } from '../components/DeathRecordFormDialog'
-import { ConversionNewRecordFormDialog } from '../components/ConversionRecordFormDialog'
-import MassIntentionFormDialog from '../components/MassIntentionFormDialog'
-import EventFormDialog, {
-  DeleteEventDialog,
-} from '../components/EventFormDialog'
+
+const BaptismNewRecordFormDialog = lazy(() =>
+  import('../components/BaptismRecordFormDialog').then((module) => ({
+    default: module.BaptismNewRecordFormDialog,
+  })),
+)
+const ConfirmationNewRecordFormDialog = lazy(() =>
+  import('../components/ConfirmationRecordFormDialog').then((module) => ({
+    default: module.ConfirmationNewRecordFormDialog,
+  })),
+)
+const MarriageNewRecordFormDialog = lazy(() =>
+  import('../components/MarriageRecordFormDialog').then((module) => ({
+    default: module.MarriageNewRecordFormDialog,
+  })),
+)
+const DeathNewRecordFormDialog = lazy(() =>
+  import('../components/DeathRecordFormDialog').then((module) => ({
+    default: module.DeathNewRecordFormDialog,
+  })),
+)
+const ConversionNewRecordFormDialog = lazy(() =>
+  import('../components/ConversionRecordFormDialog').then((module) => ({
+    default: module.ConversionNewRecordFormDialog,
+  })),
+)
+const MassIntentionFormDialog = lazy(
+  () => import('../components/MassIntentionFormDialog'),
+)
+const EventFormDialog = lazy(() =>
+  import('../components/EventFormDialog').then((module) => ({
+    default: module.default,
+  })),
+)
+const DeleteEventDialog = lazy(() =>
+  import('../components/EventFormDialog').then((module) => ({
+    default: module.DeleteEventDialog,
+  })),
+)
 import { MESSAGES, isManualEvent, isSacramentalEvent } from '../constants'
 import { getSacramentColor } from '../constants/sacramentColors'
 import { getSacramentalRecordCounts } from '../services/dashboardService'
@@ -1358,87 +1388,105 @@ export default function Dashboard() {
         onContinue={handleContinueSchedule}
       />
 
-      <BaptismNewRecordFormDialog
-        open={sacramentForm === 'baptism'}
-        existingRecords={baptismRecords}
-        defaultSacramentDate={prefillDate}
-        defaultSacramentTime={prefillTime}
-        onClose={handleCloseSacramentForm}
-        onSave={handleSaveBaptism}
-        saving={sacramentSaving}
-      />
+      <Suspense fallback={null}>
+        {sacramentForm === 'baptism' ? (
+          <BaptismNewRecordFormDialog
+            open
+            existingRecords={baptismRecords}
+            defaultSacramentDate={prefillDate}
+            defaultSacramentTime={prefillTime}
+            onClose={handleCloseSacramentForm}
+            onSave={handleSaveBaptism}
+            saving={sacramentSaving}
+          />
+        ) : null}
 
-      <ConfirmationNewRecordFormDialog
-        open={sacramentForm === 'confirmation'}
-        existingRecords={confirmationRecords}
-        defaultSacramentDate={prefillDate}
-        defaultSacramentTime={prefillTime}
-        onClose={handleCloseSacramentForm}
-        onSave={handleSaveConfirmation}
-        saving={sacramentSaving}
-      />
+        {sacramentForm === 'confirmation' ? (
+          <ConfirmationNewRecordFormDialog
+            open
+            existingRecords={confirmationRecords}
+            defaultSacramentDate={prefillDate}
+            defaultSacramentTime={prefillTime}
+            onClose={handleCloseSacramentForm}
+            onSave={handleSaveConfirmation}
+            saving={sacramentSaving}
+          />
+        ) : null}
 
-      <MarriageNewRecordFormDialog
-        open={sacramentForm === 'marriage'}
-        existingRecords={marriageRecords}
-        defaultSacramentDate={prefillDate}
-        defaultSacramentTime={prefillTime}
-        onClose={handleCloseSacramentForm}
-        onSave={handleSaveMarriage}
-        saving={sacramentSaving}
-      />
+        {sacramentForm === 'marriage' ? (
+          <MarriageNewRecordFormDialog
+            open
+            existingRecords={marriageRecords}
+            defaultSacramentDate={prefillDate}
+            defaultSacramentTime={prefillTime}
+            onClose={handleCloseSacramentForm}
+            onSave={handleSaveMarriage}
+            saving={sacramentSaving}
+          />
+        ) : null}
 
-      <DeathNewRecordFormDialog
-        open={sacramentForm === 'death'}
-        existingRecords={deathRecords}
-        defaultSacramentDate={prefillDate}
-        defaultSacramentTime={prefillTime}
-        onClose={handleCloseSacramentForm}
-        onSave={handleSaveDeath}
-        saving={sacramentSaving}
-      />
+        {sacramentForm === 'death' ? (
+          <DeathNewRecordFormDialog
+            open
+            existingRecords={deathRecords}
+            defaultSacramentDate={prefillDate}
+            defaultSacramentTime={prefillTime}
+            onClose={handleCloseSacramentForm}
+            onSave={handleSaveDeath}
+            saving={sacramentSaving}
+          />
+        ) : null}
 
-      <ConversionNewRecordFormDialog
-        open={sacramentForm === 'conversion'}
-        existingRecords={conversionRecords}
-        defaultSacramentDate={prefillDate}
-        onClose={handleCloseSacramentForm}
-        onSave={handleSaveConversion}
-        saving={sacramentSaving}
-      />
+        {sacramentForm === 'conversion' ? (
+          <ConversionNewRecordFormDialog
+            open
+            existingRecords={conversionRecords}
+            defaultSacramentDate={prefillDate}
+            onClose={handleCloseSacramentForm}
+            onSave={handleSaveConversion}
+            saving={sacramentSaving}
+          />
+        ) : null}
 
-      <MassIntentionFormDialog
-        open={sacramentForm === 'massIntention'}
-        mode="add"
-        existingRecords={massIntentionRecords}
-        defaultMassDate={prefillDate}
-        defaultMassTime={prefillTime}
-        onClose={handleCloseSacramentForm}
-        onSave={handleSaveMassIntention}
-        saving={sacramentSaving}
-      />
+        {sacramentForm === 'massIntention' ? (
+          <MassIntentionFormDialog
+            open
+            mode="add"
+            existingRecords={massIntentionRecords}
+            defaultMassDate={prefillDate}
+            defaultMassTime={prefillTime}
+            onClose={handleCloseSacramentForm}
+            onSave={handleSaveMassIntention}
+            saving={sacramentSaving}
+          />
+        ) : null}
 
-      <EventFormDialog
-        open={formOpen}
-        mode={formMode === 'edit' ? 'edit' : 'add'}
-        event={selectedEvent}
-        defaultDate={toDateKey(selectedDate)}
-        onClose={handleCloseForm}
-        onSave={handleSaveEvent}
-        saving={saving}
-      />
+        {formOpen ? (
+          <EventFormDialog
+            open
+            mode={formMode === 'edit' ? 'edit' : 'add'}
+            event={selectedEvent}
+            defaultDate={toDateKey(selectedDate)}
+            onClose={handleCloseForm}
+            onSave={handleSaveEvent}
+            saving={saving}
+          />
+        ) : null}
 
-      <DeleteEventDialog
-        open={deleteOpen}
-        event={eventToDelete}
-        onClose={() => {
-          if (saving) return
-          setDeleteOpen(false)
-          setEventToDelete(null)
-        }}
-        onConfirm={handleConfirmDelete}
-        deleting={saving}
-      />
+        {deleteOpen ? (
+          <DeleteEventDialog
+            open
+            event={eventToDelete}
+            onClose={() => {
+              if (saving) return
+              setDeleteOpen(false)
+              setEventToDelete(null)
+            }}
+            onConfirm={handleConfirmDelete}
+            deleting={saving}
+          />
+        ) : null}
+      </Suspense>
 
       <Snackbar
         open={snackbar.open}

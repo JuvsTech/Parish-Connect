@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -45,7 +45,6 @@ import {
   RecordsEmptyState,
 } from '../components/recordUi'
 import { displayValue } from '../utils/displayValue'
-import MarriageOldRecordFormDialog from '../components/MarriageRecordFormDialog'
 import CertificatePrepActions from '../components/CertificateGenerationPrep'
 import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
@@ -62,6 +61,10 @@ import {
   getBrideDisplayName,
   getGroomDisplayName,
 } from '../utils/personName'
+
+const MarriageOldRecordFormDialog = lazy(
+  () => import('../components/MarriageRecordFormDialog'),
+)
 
 const EMPTY_FILTERS = {
   recordTypes: [],
@@ -1086,15 +1089,19 @@ export default function MarriageRecords() {
         onClose={handleCloseView}
       />
 
-      <MarriageOldRecordFormDialog
-        open={formOpen}
-        mode={formMode}
-        record={formMode === 'edit' ? selectedRecord : null}
-        existingRecords={records}
-        saving={saving}
-        onClose={handleCloseForm}
-        onSave={handleSaveRecord}
-      />
+      {formOpen ? (
+        <Suspense fallback={null}>
+          <MarriageOldRecordFormDialog
+            open
+            mode={formMode}
+            record={formMode === 'edit' ? selectedRecord : null}
+            existingRecords={records}
+            saving={saving}
+            onClose={handleCloseForm}
+            onSave={handleSaveRecord}
+          />
+        </Suspense>
+      ) : null}
 
       <Snackbar
         open={snackbar.open}

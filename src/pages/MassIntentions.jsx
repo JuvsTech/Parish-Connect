@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -51,7 +51,6 @@ import {
   FilterSection,
   RecordsEmptyState,
 } from '../components/recordUi'
-import MassIntentionFormDialog from '../components/MassIntentionFormDialog'
 import {
   createMassIntentionRecord,
   deleteMassIntentionRecord,
@@ -66,6 +65,10 @@ import {
   formatMassIntentionResidence,
 } from '../utils/personName'
 import { formatMassIntentionRecordNumber as formatMiNumber } from '../utils/recordNumber'
+
+const MassIntentionFormDialog = lazy(
+  () => import('../components/MassIntentionFormDialog'),
+)
 
 const EMPTY_FILTERS = {
   statuses: [],
@@ -740,15 +743,19 @@ export default function MassIntentions() {
         </Box>
       </Popover>
 
-      <MassIntentionFormDialog
-        open={formOpen}
-        mode={formMode}
-        record={formMode === 'edit' ? selectedRecord : null}
-        existingRecords={records}
-        saving={saving}
-        onClose={() => setFormOpen(false)}
-        onSave={handleSaveRecord}
-      />
+      {formOpen ? (
+        <Suspense fallback={null}>
+          <MassIntentionFormDialog
+            open
+            mode={formMode}
+            record={formMode === 'edit' ? selectedRecord : null}
+            existingRecords={records}
+            saving={saving}
+            onClose={() => setFormOpen(false)}
+            onSave={handleSaveRecord}
+          />
+        </Suspense>
+      ) : null}
 
       <ViewMassIntentionDialog
         open={viewOpen}

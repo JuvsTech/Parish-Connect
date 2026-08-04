@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import {
   Alert,
@@ -37,7 +37,6 @@ import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined'
 import { MARIAN_BLUE } from '../theme/parishTheme'
 import { MESSAGES } from '../constants'
 import { getRequirementsSummary } from '../constants/sacramentRequirements'
-import BaptismOldRecordFormDialog from '../components/BaptismRecordFormDialog'
 import CertificatePrepActions from '../components/CertificateGenerationPrep'
 import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
@@ -64,6 +63,10 @@ import {
   getGodparentDisplayName,
   getMotherDisplayName,
 } from '../utils/personName'
+
+const BaptismOldRecordFormDialog = lazy(
+  () => import('../components/BaptismRecordFormDialog'),
+)
 
 function normalizeGodparentNames(godparents) {
   if (!Array.isArray(godparents)) return []
@@ -1153,15 +1156,19 @@ export default function BaptismRecords() {
         onClose={handleCloseView}
       />
 
-      <BaptismOldRecordFormDialog
-        open={formOpen}
-        mode={formMode}
-        record={formMode === 'edit' ? selectedRecord : null}
-        existingRecords={records}
-        onClose={handleCloseForm}
-        onSave={handleSaveRecord}
-        saving={saving}
-      />
+      {formOpen ? (
+        <Suspense fallback={null}>
+          <BaptismOldRecordFormDialog
+            open
+            mode={formMode}
+            record={formMode === 'edit' ? selectedRecord : null}
+            existingRecords={records}
+            onClose={handleCloseForm}
+            onSave={handleSaveRecord}
+            saving={saving}
+          />
+        </Suspense>
+      ) : null}
 
       <Snackbar
         open={snackbar.open}

@@ -7,6 +7,7 @@ export {
   CERTIFICATE_PARISH_NAME,
   CERTIFICATE_PARISH_ADDRESS,
   CERTIFICATE_BAPTISM_RECORD_PARISH,
+  isCertificateImplemented,
 } from './certificates'
 export {
   STATUS,

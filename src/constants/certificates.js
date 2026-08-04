@@ -43,3 +43,12 @@ export const CERTIFICATE_IMPLEMENTED = new Set([
   CERTIFICATE_TYPES.MARRIAGE,
   CERTIFICATE_TYPES.DEATH,
 ])
+
+/**
+ * Lightweight check — safe to import without pulling PDF / certificate runtime.
+ * @param {string} sacrament
+ * @returns {boolean}
+ */
+export function isCertificateImplemented(sacrament) {
+  return CERTIFICATE_IMPLEMENTED.has(sacrament)
+}

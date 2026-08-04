@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useReactToPrint } from 'react-to-print'
 import {
   Alert,
   Box,
@@ -20,7 +21,6 @@ import {
   buildCertificateData,
   downloadCertificatePdf,
   isCertificateImplemented,
-  printCertificateElement,
 } from '../../services/certificateService'
 import { CERTIFICATE_TYPES } from '../../constants/certificates'
 
@@ -101,25 +101,20 @@ export default function CertificatePreviewDialog({
     }
   }, [open, sacrament, recordId])
 
-  async function handlePrint() {
-    if (!certificateRef.current || !data) return
-    setExporting(true)
-    setError('')
-    try {
-      await printCertificateElement(
-        certificateRef.current,
-        data.title || 'Certificate',
-      )
-    } catch (printError) {
+  const handlePrint = useReactToPrint({
+    contentRef: certificateRef,
+    documentTitle: data?.title || 'Certificate',
+    onBeforePrint: async () => {
+      setError('')
+    },
+    onPrintError: (_errorLocation, printError) => {
       setError(
         printError instanceof Error
           ? printError.message
           : 'Unable to print the certificate.',
       )
-    } finally {
-      setExporting(false)
-    }
-  }
+    },
+  })
 
   async function handleDownloadPdf() {
     if (!certificateRef.current || !data) return
@@ -222,7 +217,7 @@ export default function CertificatePreviewDialog({
         </Button>
         <Box sx={{ flex: 1 }} />
         <Button
-          onClick={handlePrint}
+          onClick={() => handlePrint()}
           variant="outlined"
           disabled={!data || loading || exporting}
           sx={{ borderRadius: 3, minWidth: 100 }}
