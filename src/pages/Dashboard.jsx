@@ -27,7 +27,9 @@ import HowToRegOutlinedIcon from '@mui/icons-material/HowToRegOutlined'
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined'
 import { MARIAN_BLUE, SOFT_SHADOW_HOVER } from '../theme/parishTheme'
 import PageHeader from '../components/PageHeader'
-import ScheduleSacramentDialog from '../components/ScheduleSacramentDialog'
+import ScheduleSacramentDialog, {
+  DateScheduleOverviewDialog,
+} from '../components/ScheduleSacramentDialog'
 import { BaptismNewRecordFormDialog } from '../components/BaptismRecordFormDialog'
 import { ConfirmationNewRecordFormDialog } from '../components/ConfirmationRecordFormDialog'
 import { MarriageNewRecordFormDialog } from '../components/MarriageRecordFormDialog'
@@ -81,10 +83,11 @@ import {
   formatScheduleTime,
   formatShortDate,
   getCalendarCells,
-  getDatesWithEvents,
   getEventDateKey,
   getEventsForDate,
   getUpcomingEvents,
+  isPastDateKey,
+  isPastEvent,
   isSameDay,
   parseDateKey,
   startOfDay,
@@ -191,7 +194,6 @@ function MonthlyCalendar({
   selectedDate,
   today,
   dateColors,
-  datesWithEvents,
   onSelectDate,
   onDoubleClickDate,
   onChangeMonth,
@@ -324,7 +326,6 @@ function MonthlyCalendar({
             const isToday = isSameDay(date, today)
             const isSelected = isSameDay(date, selectedDate)
             const colors = dateColors.get(key) || []
-            const isEmpty = !datesWithEvents?.has(key)
 
             return (
               <Box
@@ -332,17 +333,10 @@ function MonthlyCalendar({
                 component="button"
                 type="button"
                 onClick={() => onSelectDate(date)}
-                onDoubleClick={() => {
-                  if (!isEmpty) return
-                  onDoubleClickDate?.(date)
-                }}
+                onDoubleClick={() => onDoubleClickDate?.(date)}
                 aria-label={date.toDateString()}
                 aria-pressed={isSelected}
-                title={
-                  isEmpty
-                    ? 'Single-click to view · Double-click to create a record'
-                    : 'Single-click to view day details'
-                }
+                title="Single-click to view · Double-click to create a record"
                 sx={{
                   border: '1px solid',
                   borderColor: isSelected
@@ -662,6 +656,7 @@ export default function Dashboard() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [eventToDelete, setEventToDelete] = useState(null)
   const [scheduleOpen, setScheduleOpen] = useState(false)
+  const [dateOverviewOpen, setDateOverviewOpen] = useState(false)
   const [scheduleDate, setScheduleDate] = useState(null)
   const [scheduleTime, setScheduleTime] = useState('')
   const [sacramentForm, setSacramentForm] = useState(null)
@@ -769,7 +764,6 @@ export default function Dashboard() {
   }, [showSnackbar])
 
   const dateColors = useMemo(() => getDateSourceColors(events), [events])
-  const datesWithEvents = useMemo(() => getDatesWithEvents(events), [events])
   const dayEvents = useMemo(
     () => getEventsForDate(events, selectedDate),
     [events, selectedDate],
@@ -832,12 +826,22 @@ export default function Dashboard() {
 
   function openQuickCreate(date, time = '') {
     const next = startOfDay(date)
-    if (getEventsForDate(events, next).length > 0) return
-
     setSelectedDate(next)
     setViewDate(new Date(next.getFullYear(), next.getMonth(), 1))
+
+    if (isPastDateKey(toDateKey(next))) {
+      showSnackbar(MESSAGES.ERROR.EVENT_PAST_DATE_LOCKED, 'info')
+      return
+    }
+
     setScheduleDate(next)
     setScheduleTime(String(time || '').trim())
+
+    if (getEventsForDate(events, next).length > 0) {
+      setDateOverviewOpen(true)
+      return
+    }
+
     setScheduleOpen(true)
   }
 
@@ -849,8 +853,25 @@ export default function Dashboard() {
     openQuickCreate(date || selectedDate, '')
   }
 
+  function handleSelectScheduledFromDialog(event) {
+    setDateOverviewOpen(false)
+    setScheduleOpen(false)
+    handleSelectEvent(event)
+  }
+
+  function handleOverviewAddSacramental() {
+    setDateOverviewOpen(false)
+    setScheduleOpen(true)
+  }
+
+  function handleOverviewAddCalendarEvent() {
+    setDateOverviewOpen(false)
+    handleOpenAddEvent()
+  }
+
   async function handleContinueSchedule(option) {
     setScheduleOpen(false)
+
     try {
       if (option.value === 'baptism') {
         setBaptismRecords(await getBaptismRecords())
@@ -1031,6 +1052,10 @@ export default function Dashboard() {
   }
 
   function handleOpenAddEvent() {
+    if (isPastDateKey(toDateKey(scheduleDate || selectedDate))) {
+      showSnackbar(MESSAGES.ERROR.EVENT_PAST_DATE_LOCKED, 'info')
+      return
+    }
     setSelectedEvent(null)
     setFormMode('add')
     setFormOpen(true)
@@ -1038,7 +1063,11 @@ export default function Dashboard() {
 
   function handleSelectEvent(event) {
     setSelectedEvent(event)
-    setFormMode(isManualEvent(event) ? 'edit' : 'view')
+    if (isPastEvent(event) || !isManualEvent(event)) {
+      setFormMode('view')
+    } else {
+      setFormMode('edit')
+    }
     setFormOpen(true)
   }
 
@@ -1144,7 +1173,6 @@ export default function Dashboard() {
                 selectedDate={selectedDate}
                 today={today}
                 dateColors={dateColors}
-                datesWithEvents={datesWithEvents}
                 onSelectDate={handleSelectDate}
                 onDoubleClickDate={handleDoubleClickDate}
                 onChangeMonth={handleChangeMonth}
@@ -1311,6 +1339,15 @@ export default function Dashboard() {
           </Typography>
         </>
       )}
+
+      <DateScheduleOverviewDialog
+        open={dateOverviewOpen}
+        events={getEventsForDate(events, scheduleDate || selectedDate)}
+        onClose={() => setDateOverviewOpen(false)}
+        onSelectEvent={handleSelectScheduledFromDialog}
+        onAddSacramentalRecord={handleOverviewAddSacramental}
+        onAddCalendarEvent={handleOverviewAddCalendarEvent}
+      />
 
       <ScheduleSacramentDialog
         open={scheduleOpen}

@@ -69,7 +69,10 @@ export function formatScheduleTime(time24) {
 }
 
 export function getEventDateKey(event) {
-  if (event?.dateKey) return event.dateKey
+  if (event?.dateKey) {
+    const key = String(event.dateKey).trim().slice(0, 10)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(key)) return key
+  }
   if (!event?.date) return ''
 
   if (typeof event.date?.toDate === 'function') {
@@ -80,7 +83,27 @@ export function getEventDateKey(event) {
     return toDateKey(event.date)
   }
 
+  if (typeof event.date === 'string') {
+    const key = event.date.trim().slice(0, 10)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(key)) return key
+  }
+
   return ''
+}
+
+/**
+ * True when dateKey is strictly before today's local calendar date.
+ * Today and future return false. Time-of-day is ignored.
+ */
+export function isPastDateKey(dateKey, now = new Date()) {
+  const key = String(dateKey || '').trim().slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return false
+  return key < toDateKey(now)
+}
+
+/** True when the event is scheduled before today (local calendar date). */
+export function isPastEvent(event, now = new Date()) {
+  return isPastDateKey(getEventDateKey(event), now)
 }
 
 export function getEventTime(event) {

@@ -75,6 +75,8 @@ export const MESSAGES = {
     MASS_INTENTION_DUPLICATE_RECORD:
       'A Mass Intention with this number already exists.',
     MASS_INTENTION_LOAD: 'Unable to load Mass Intentions',
+    MASS_INTENTION_LOCKED:
+      'This Mass Intention is Offered or Cancelled and can no longer be modified.',
     EVENT_FETCH: 'Failed to fetch events.',
     EVENT_CREATE: 'Unable to create event.',
     EVENT_UPDATE: 'Unable to update event.',
@@ -82,7 +84,10 @@ export const MESSAGES = {
     EVENT_REQUIRED_FIELDS: 'Please fill in all required event fields.',
     EVENT_CUSTOM_TITLE_REQUIRED: 'Please enter a custom event title.',
     EVENT_SACRAMENTAL_LOCKED:
-      'This event is linked to a sacramental record. Please edit or delete the original record instead.',
+      'This event is linked to a sacramental record. Please edit the original record instead.',
+    EVENT_PAST_LOCKED: 'Past events can no longer be modified.',
+    EVENT_PAST_DATE_LOCKED:
+      'This date has already passed. New records can no longer be created.',
     DASHBOARD_LOAD: 'Unable to load dashboard data.',
     REPORT_FETCH: 'Unable to load report data.',
     REPORT_GENERATE: 'Unable to generate the report. Please try again.',

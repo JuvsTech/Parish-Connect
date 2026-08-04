@@ -37,9 +37,11 @@ import VolunteerActivismOutlinedIcon from '@mui/icons-material/VolunteerActivism
 import { MARIAN_BLUE } from '../theme/parishTheme'
 import {
   MASS_INTENTION_PAGE_SIZE,
+  MASS_INTENTION_STATUS,
   MASS_INTENTION_STATUS_OPTIONS,
   MASS_INTENTION_TYPE_OPTIONS,
   MESSAGES,
+  isMassIntentionLocked,
 } from '../constants'
 import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
@@ -213,6 +215,13 @@ function ViewMassIntentionDialog({ open, record, onClose }) {
 
         <DetailSection title="Status">
           <DetailField label="Status" value={record.status} />
+          {record.status === MASS_INTENTION_STATUS.CANCELLED ||
+          record.cancellationReason ? (
+            <DetailField
+              label="Cancellation Reason"
+              value={record.cancellationReason}
+            />
+          ) : null}
         </DetailSection>
 
         <DetailSection title="Audit Information">
@@ -618,22 +627,40 @@ export default function MassIntentions() {
                             <VisibilityOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Edit">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleOpenEdit(record)}
-                          >
-                            <EditOutlinedIcon fontSize="small" />
-                          </IconButton>
+                        <Tooltip
+                          title={
+                            isMassIntentionLocked(record.status)
+                              ? 'Read-only'
+                              : 'Edit'
+                          }
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              disabled={isMassIntentionLocked(record.status)}
+                              onClick={() => handleOpenEdit(record)}
+                            >
+                              <EditOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </span>
                         </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleOpenDelete(record)}
-                          >
-                            <DeleteOutlineRoundedIcon fontSize="small" />
-                          </IconButton>
+                        <Tooltip
+                          title={
+                            isMassIntentionLocked(record.status)
+                              ? 'Read-only'
+                              : 'Delete'
+                          }
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              disabled={isMassIntentionLocked(record.status)}
+                              onClick={() => handleOpenDelete(record)}
+                            >
+                              <DeleteOutlineRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </TableCell>
                     </TableRow>

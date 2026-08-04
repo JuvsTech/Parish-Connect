@@ -31,6 +31,20 @@ export const MASS_INTENTION_STATUS_OPTIONS = [
 
 export const DEFAULT_MASS_INTENTION_STATUS = MASS_INTENTION_STATUS.PENDING
 
+/**
+ * Offered / Cancelled Mass Intentions are locked from normal edits.
+ *
+ * @param {string} status
+ * @returns {boolean}
+ */
+export function isMassIntentionLocked(status) {
+  const value = String(status || '').trim()
+  return (
+    value === MASS_INTENTION_STATUS.OFFERED ||
+    value === MASS_INTENTION_STATUS.CANCELLED
+  )
+}
+
 export const MASS_INTENTION_PAGE_SIZE = 10
 
 /** Recipient / "Offered For" types (Firestore values). */

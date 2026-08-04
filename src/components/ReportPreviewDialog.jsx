@@ -125,7 +125,9 @@ export default function ReportPreviewDialog({
         sx={{ alignItems: "center", justifyContent: "space-between" }}>
           <Box sx={{ minWidth: 0, flex: 1, pr: 1 }}>
             <Typography
+              component="span"
               sx={{
+                display: 'block',
                 fontWeight: 700,
                 color: MARIAN_BLUE,
                 fontSize: { xs: '0.98rem', sm: '1.05rem' },
@@ -135,7 +137,12 @@ export default function ReportPreviewDialog({
             >
               {dialogTitle}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.2 }}>
+            <Typography
+              component="span"
+              variant="body2"
+              color="text.secondary"
+              sx={{ display: 'block', mt: 0.2 }}
+            >
               Preview and export the generated report.
             </Typography>
           </Box>

@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   FormControl,
   FormControlLabel,
@@ -20,6 +21,7 @@ import {
   RadioGroup,
   Select,
   TextField,
+  Typography,
 } from '@mui/material'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import { MARIAN_BLUE } from '../theme/parishTheme'
@@ -29,10 +31,12 @@ import {
   MASS_INTENTION_OTHER_TYPE,
   MASS_INTENTION_RECIPIENT_TYPE,
   MASS_INTENTION_RECIPIENT_TYPE_VALUES,
+  MASS_INTENTION_STATUS,
   MASS_INTENTION_STATUS_OPTIONS,
   MASS_INTENTION_TYPE_OPTIONS,
   applyRecipientTypeFields,
   getAllowedRecipientTypeOptions,
+  isMassIntentionLocked,
   isRecipientTypeAllowed,
   syncFormRecipientForIntentionType,
 } from '../constants'
@@ -94,6 +98,7 @@ const FIELD_LABELS = {
   residencePlace: 'Residence',
   status: 'Status',
   remarks: 'Remarks',
+  cancellationReason: 'Cancellation Reason',
 }
 
 function resolveRecipientType(record = {}) {
@@ -142,6 +147,7 @@ function createEmptyForm() {
     residencePlace: { ...EMPTY_PLACE },
     remarks: '',
     status: DEFAULT_MASS_INTENTION_STATUS,
+    cancellationReason: '',
   }
 }
 
@@ -206,6 +212,7 @@ function mapRecordToForm(record) {
     }),
     remarks: blankToEmpty(record.remarks),
     status: blankToEmpty(record.status) || DEFAULT_MASS_INTENTION_STATUS,
+    cancellationReason: blankToEmpty(record.cancellationReason),
   }
   return syncFormRecipientForIntentionType(mapped, mapped.intentionType)
 }
@@ -306,11 +313,17 @@ export default function MassIntentionFormDialog({
   defaultMassTime = '',
 }) {
   const isEdit = mode === 'edit'
+  const isReadOnly = Boolean(
+    isEdit && record && isMassIntentionLocked(record.status),
+  )
+  const fieldsDisabled = saving || isReadOnly
   const [form, setForm] = useState(createEmptyForm)
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const [formError, setFormError] = useState('')
+  const [statusConfirm, setStatusConfirm] = useState(null)
+  const [cancellationReasonDraft, setCancellationReasonDraft] = useState('')
 
   const {
     confirmOpen,
@@ -319,11 +332,13 @@ export default function MassIntentionFormDialog({
     requestClose,
     keepEditing,
     discardChanges,
-  } = useUnsavedChanges(form, { enabled: open && !saving })
+  } = useUnsavedChanges(form, { enabled: open && !saving && !isReadOnly })
 
   useEffect(() => {
     if (!open) {
       clearBaseline()
+      setStatusConfirm(null)
+      setCancellationReasonDraft('')
       return
     }
 
@@ -385,7 +400,7 @@ export default function MassIntentionFormDialog({
     handleBlur: (field) => () => {
       setTouched((prev) => ({ ...prev, [field]: true }))
     },
-    saving,
+    saving: fieldsDisabled,
   }
 
   function handleChange(field) {
@@ -394,6 +409,56 @@ export default function MassIntentionFormDialog({
       setForm((prev) => ({ ...prev, [field]: value }))
       setErrors((prev) => ({ ...prev, [field]: '' }))
     }
+  }
+
+  function handleStatusChange(event) {
+    const nextStatus = event.target.value
+    const currentStatus = form.status
+
+    if (
+      currentStatus === MASS_INTENTION_STATUS.SCHEDULED &&
+      nextStatus === MASS_INTENTION_STATUS.OFFERED
+    ) {
+      setStatusConfirm('offered')
+      return
+    }
+
+    if (
+      currentStatus === MASS_INTENTION_STATUS.SCHEDULED &&
+      nextStatus === MASS_INTENTION_STATUS.CANCELLED
+    ) {
+      setCancellationReasonDraft(form.cancellationReason || '')
+      setStatusConfirm('cancelled')
+      return
+    }
+
+    setForm((prev) => ({ ...prev, status: nextStatus }))
+    setErrors((prev) => ({ ...prev, status: '' }))
+  }
+
+  function handleCancelStatusConfirm() {
+    setStatusConfirm(null)
+    setCancellationReasonDraft('')
+  }
+
+  function handleConfirmOffered() {
+    setForm((prev) => ({
+      ...prev,
+      status: MASS_INTENTION_STATUS.OFFERED,
+    }))
+    setErrors((prev) => ({ ...prev, status: '' }))
+    setStatusConfirm(null)
+  }
+
+  function handleConfirmCancelled() {
+    setForm((prev) => ({
+      ...prev,
+      status: MASS_INTENTION_STATUS.CANCELLED,
+      cancellationReason: String(cancellationReasonDraft || '').trim(),
+    }))
+    setErrors((prev) => ({ ...prev, status: '' }))
+    setStatusConfirm(null)
+    setCancellationReasonDraft('')
   }
 
   function clearRecipientFieldErrors() {
@@ -518,6 +583,7 @@ export default function MassIntentionFormDialog({
       barangay: String(form.residencePlace?.barangayName || '').trim(),
       remarks: form.remarks.trim(),
       status: form.status,
+      cancellationReason: form.cancellationReason.trim(),
     }
 
     try {
@@ -556,7 +622,11 @@ export default function MassIntentionFormDialog({
           fontWeight: 700,
         }}
       >
-        {isEdit ? 'Edit Mass Intention' : 'Add Mass Intention'}
+        {isReadOnly
+          ? 'View Mass Intention'
+          : isEdit
+            ? 'Edit Mass Intention'
+            : 'Add Mass Intention'}
         <IconButton
           onClick={handleCloseRequest}
           disabled={saving}
@@ -568,6 +638,12 @@ export default function MassIntentionFormDialog({
 
       <DialogContent dividers>
         <Box component="form" id="mass-intention-form" onSubmit={handleSubmit}>
+          {isReadOnly ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              This Mass Intention is {record?.status} and is read-only.
+            </Alert>
+          ) : null}
+
           {formError ? (
             <Alert severity="error" sx={{ mb: 2 }}>
               {formError}
@@ -607,7 +683,7 @@ export default function MassIntentionFormDialog({
                 onBlur={handleBlur('massDate')}
                 fullWidth
                 required
-                disabled={saving}
+                disabled={fieldsDisabled}
                 error={showError('massDate')}
                 helperText={showError('massDate') ? errors.massDate : ' '}
                 slotProps={{ inputLabel: { shrink: true } }}
@@ -623,7 +699,7 @@ export default function MassIntentionFormDialog({
                 }}
                 onBlur={handleBlur('massTime')}
                 required
-                disabled={saving}
+                disabled={fieldsDisabled}
                 error={showError('massTime')}
                 helperText={showError('massTime') ? errors.massTime : ' '}
                 id="mass-intention-time"
@@ -633,7 +709,7 @@ export default function MassIntentionFormDialog({
               <FormControl
                 fullWidth
                 required
-                disabled={saving}
+                disabled={fieldsDisabled}
                 error={showError('intentionType')}
               >
                 <InputLabel id="mass-intention-type-label">
@@ -666,7 +742,7 @@ export default function MassIntentionFormDialog({
                   onBlur={handleBlur('otherIntention')}
                   fullWidth
                   required
-                  disabled={saving}
+                  disabled={fieldsDisabled}
                   error={showError('otherIntention')}
                   helperText={
                     showError('otherIntention') ? errors.otherIntention : ' '
@@ -688,18 +764,18 @@ export default function MassIntentionFormDialog({
                 helperText={
                   showError('celebrantName') ? errors.celebrantName : ' '
                 }
-                disabled={saving}
+                disabled={fieldsDisabled}
                 required
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth required disabled={saving}>
+              <FormControl fullWidth required disabled={fieldsDisabled}>
                 <InputLabel id="mass-intention-status-label">Status</InputLabel>
                 <Select
                   labelId="mass-intention-status-label"
                   label="Status"
                   value={form.status}
-                  onChange={handleChange('status')}
+                  onChange={handleStatusChange}
                 >
                   {MASS_INTENTION_STATUS_OPTIONS.map((option) => (
                     <MenuItem key={option} value={option}>
@@ -718,10 +794,25 @@ export default function MassIntentionFormDialog({
                 fullWidth
                 multiline
                 minRows={2}
-                disabled={saving}
+                disabled={fieldsDisabled}
                 helperText=" "
               />
             </Grid>
+            {form.status === MASS_INTENTION_STATUS.CANCELLED ||
+            form.cancellationReason ? (
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  label="Cancellation Reason"
+                  value={form.cancellationReason}
+                  onChange={handleChange('cancellationReason')}
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  disabled={fieldsDisabled}
+                  helperText=" "
+                />
+              </Grid>
+            ) : null}
           </FormSection>
 
           <FormSection title="Offered For" showDivider>
@@ -729,7 +820,7 @@ export default function MassIntentionFormDialog({
               <FormControl
                 component="fieldset"
                 error={showError('recipientType')}
-                disabled={saving}
+                disabled={fieldsDisabled}
                 required
                 sx={{ width: '100%', mb: 0.5 }}
               >
@@ -864,7 +955,7 @@ export default function MassIntentionFormDialog({
                   }}
                   fullWidth
                   required
-                  disabled={saving}
+                  disabled={fieldsDisabled}
                   error={showError('familyName')}
                   helperText={
                     showError('familyName')
@@ -886,7 +977,7 @@ export default function MassIntentionFormDialog({
                   onBlur={handleBlur('organizationName')}
                   fullWidth
                   required
-                  disabled={saving}
+                  disabled={fieldsDisabled}
                   error={showError('organizationName')}
                   helperText={
                     showError('organizationName')
@@ -907,7 +998,7 @@ export default function MassIntentionFormDialog({
                   onBlur={handleBlur('offeredForDescription')}
                   fullWidth
                   required
-                  disabled={saving}
+                  disabled={fieldsDisabled}
                   error={showError('offeredForDescription')}
                   helperText={
                     showError('offeredForDescription')
@@ -953,7 +1044,7 @@ export default function MassIntentionFormDialog({
                 onChange={handlePhoneChange}
                 onBlur={handleBlur('contactNumber')}
                 fullWidth
-                disabled={saving}
+                disabled={fieldsDisabled}
                 error={showError('contactNumber')}
                 helperText={
                   showError('contactNumber')
@@ -979,7 +1070,7 @@ export default function MassIntentionFormDialog({
                 helperText={
                   showError('residencePlace') ? errors.residencePlace : ' '
                 }
-                disabled={saving}
+                disabled={fieldsDisabled}
                 idPrefix="mass-intention-residence"
               />
             </Grid>
@@ -989,18 +1080,120 @@ export default function MassIntentionFormDialog({
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={handleCloseRequest} disabled={saving}>
+          {isReadOnly ? 'Close' : 'Cancel'}
+        </Button>
+        {!isReadOnly ? (
+          <Button
+            type="submit"
+            form="mass-intention-form"
+            variant="contained"
+            disabled={saving}
+            startIcon={
+              saving ? <CircularProgress size={16} color="inherit" /> : null
+            }
+          >
+            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Save Intention'}
+          </Button>
+        ) : null}
+      </DialogActions>
+    </Dialog>
+
+    <Dialog
+      open={statusConfirm === 'offered'}
+      onClose={handleCancelStatusConfirm}
+      fullWidth
+      maxWidth="xs"
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+          },
+        },
+      }}
+    >
+      <DialogTitle sx={{ color: MARIAN_BLUE, fontWeight: 700, pb: 1 }}>
+        Mark as Offered
+      </DialogTitle>
+      <DialogContent>
+        <DialogContentText sx={{ color: 'text.secondary', lineHeight: 1.65 }}>
+          Are you sure you want to mark this Mass Intention as &quot;Offered&quot;?
+        </DialogContentText>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 1.5, lineHeight: 1.65 }}
+        >
+          This confirms that the Mass has already been celebrated.
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 1.25, lineHeight: 1.65 }}
+        >
+          Once marked as Offered, this record will become read-only and can no
+          longer be modified through normal operations.
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+        <Button onClick={handleCancelStatusConfirm} variant="outlined">
           Cancel
         </Button>
         <Button
-          type="submit"
-          form="mass-intention-form"
+          onClick={handleConfirmOffered}
           variant="contained"
-          disabled={saving}
-          startIcon={
-            saving ? <CircularProgress size={16} color="inherit" /> : null
-          }
+          sx={{ borderRadius: 2.5 }}
         >
-          {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Save Intention'}
+          Mark as Offered
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    <Dialog
+      open={statusConfirm === 'cancelled'}
+      onClose={handleCancelStatusConfirm}
+      fullWidth
+      maxWidth="xs"
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+          },
+        },
+      }}
+    >
+      <DialogTitle sx={{ color: MARIAN_BLUE, fontWeight: 700, pb: 1 }}>
+        Cancel Mass Intention
+      </DialogTitle>
+      <DialogContent>
+        <DialogContentText
+          sx={{ color: 'text.secondary', lineHeight: 1.65, mb: 2 }}
+        >
+          Are you sure you want to cancel this Mass Intention?
+        </DialogContentText>
+        <TextField
+          label="Cancellation Reason"
+          value={cancellationReasonDraft}
+          onChange={(event) => setCancellationReasonDraft(event.target.value)}
+          fullWidth
+          multiline
+          minRows={3}
+        />
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+        <Button onClick={handleCancelStatusConfirm} variant="outlined">
+          Back
+        </Button>
+        <Button
+          onClick={handleConfirmCancelled}
+          variant="contained"
+          color="error"
+          sx={{ borderRadius: 2.5 }}
+        >
+          Confirm Cancellation
         </Button>
       </DialogActions>
     </Dialog>

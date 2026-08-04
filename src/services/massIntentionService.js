@@ -19,6 +19,7 @@ import {
   MASS_INTENTION_STATUS_OPTIONS,
   MASS_INTENTION_TYPE_OPTIONS,
   MESSAGES,
+  isMassIntentionLocked,
   isRecipientTypeAllowed,
   resolveAllowedRecipientType,
 } from '../constants'
@@ -277,6 +278,7 @@ function buildMassIntentionDocument(payload) {
     celebrantName: toProperCase(payload.celebrantName),
     remarks: normalizeText(payload.remarks),
     status: normalizeText(payload.status) || DEFAULT_MASS_INTENTION_STATUS,
+    cancellationReason: normalizeText(payload.cancellationReason),
   }
 }
 
@@ -388,6 +390,10 @@ export async function updateMassIntentionRecord(id, payload, options = {}) {
     options.existingRecords || (await getMassIntentionRecords())
   const previous = existingRecords.find((item) => item.id === id)
 
+  if (previous && isMassIntentionLocked(previous.status)) {
+    throw new Error(MESSAGES.ERROR.MASS_INTENTION_LOCKED)
+  }
+
   const normalizedPayload = {
     ...payload,
     recordYear: Number(payload.recordYear),
@@ -435,6 +441,7 @@ export async function updateMassIntentionRecord(id, payload, options = {}) {
     return mapMassIntentionDocToUi({ id, ...document })
   } catch (error) {
     if (error?.fieldErrors) throw error
+    if (error?.message === MESSAGES.ERROR.MASS_INTENTION_LOCKED) throw error
     throw new Error(MESSAGES.ERROR.MASS_INTENTION_UPDATE)
   }
 }
@@ -491,6 +498,10 @@ export async function deleteMassIntentionRecord(id, options = {}) {
       options.existingRecords || (await getMassIntentionRecords())
     const previous = existingRecords.find((item) => item.id === id)
 
+    if (previous && isMassIntentionLocked(previous.status)) {
+      throw new Error(MESSAGES.ERROR.MASS_INTENTION_LOCKED)
+    }
+
     await deleteDoc(doc(db, COLLECTIONS.MASS_INTENTIONS, id))
 
     try {
@@ -506,7 +517,8 @@ export async function deleteMassIntentionRecord(id, options = {}) {
     )
 
     return true
-  } catch {
+  } catch (error) {
+    if (error?.message === MESSAGES.ERROR.MASS_INTENTION_LOCKED) throw error
     throw new Error(MESSAGES.ERROR.MASS_INTENTION_DELETE)
   }
 }

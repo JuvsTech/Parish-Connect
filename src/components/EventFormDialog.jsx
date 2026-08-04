@@ -24,7 +24,7 @@ import {
   isSacramentalEvent,
 } from '../constants'
 import { MARIAN_BLUE } from '../theme/parishTheme'
-import { toDateKey } from '../utils/parishCalendar'
+import { getEventDateKey, isPastDateKey, toDateKey } from '../utils/parishCalendar'
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges'
 import UnsavedChangesDialog from './UnsavedChangesDialog'
 
@@ -134,7 +134,9 @@ export default function EventFormDialog({
   saving = false,
 }) {
   const isEdit = mode === 'edit'
-  const isLocked = Boolean(event && isSacramentalEvent(event))
+  const isSacramentalLocked = Boolean(event && isSacramentalEvent(event))
+  const isPastLocked = Boolean(event && isPastDateKey(getEventDateKey(event)))
+  const isLocked = isSacramentalLocked || isPastLocked
   const [form, setForm] = useState(INITIAL_FORM)
   const [errors, setErrors] = useState({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
@@ -265,8 +267,18 @@ export default function EventFormDialog({
           gap: 1,
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 700, color: MARIAN_BLUE }}>
-          {isLocked ? 'Sacramental Event' : isEdit ? 'Edit Event' : 'Add Event'}
+        <Typography
+          component="span"
+          variant="h6"
+          sx={{ fontWeight: 700, color: MARIAN_BLUE }}
+        >
+          {isSacramentalLocked
+            ? 'Sacramental Event'
+            : isPastLocked
+              ? 'View Event'
+              : isEdit
+                ? 'Edit Event'
+                : 'Add Event'}
         </Typography>
         <IconButton
           aria-label="Close"
@@ -280,7 +292,7 @@ export default function EventFormDialog({
 
       <Box component="form" onSubmit={handleSubmit}>
         <DialogContent sx={{ px: { xs: 2.5, sm: 3 }, pt: 1, pb: 1 }}>
-          {isLocked && (
+          {isSacramentalLocked && (
             <Typography
               variant="body2"
               color="text.secondary"
@@ -295,6 +307,24 @@ export default function EventFormDialog({
               }}
             >
               {MESSAGES.ERROR.EVENT_SACRAMENTAL_LOCKED}
+            </Typography>
+          )}
+
+          {isPastLocked && !isSacramentalLocked && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                mb: 2,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: 'rgba(11, 61, 145, 0.05)',
+                border: '1px solid',
+                borderColor: 'rgba(11, 61, 145, 0.12)',
+                lineHeight: 1.55,
+              }}
+            >
+              {MESSAGES.ERROR.EVENT_PAST_LOCKED}
             </Typography>
           )}
 
