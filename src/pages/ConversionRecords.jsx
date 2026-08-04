@@ -339,7 +339,7 @@ function ViewConversionDialog({ open, record, onClose }) {
       <DialogActions
         sx={{ px: { xs: 2.5, sm: 3.5 }, py: 2, gap: 1, justifyContent: 'flex-end' }}
       >
-        <CertificatePrepActions sacrament="conversion" />
+        <CertificatePrepActions sacrament="conversion" record={record} />
         <Button onClick={onClose} variant="contained" sx={{ borderRadius: 3, minWidth: 110 }}>
           Close
         </Button>

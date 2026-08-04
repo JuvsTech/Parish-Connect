@@ -14,9 +14,11 @@ import { getBaptismRecord } from './baptismService'
 import { getConfirmationRecordById } from './confirmationService'
 import { getMarriageRecordById } from './marriageService'
 import { getDeathRecordById } from './deathService'
+import { getConversionRecordById } from './conversionService'
 import {
   formatBaptismRecordNumber,
   formatConfirmationRecordNumber,
+  formatConversionRecordNumber,
   formatDeathRecordNumber,
   formatMarriageRecordNumber,
 } from '../utils/recordNumber'
@@ -26,6 +28,7 @@ import {
   getBrideDisplayName,
   getChildDisplayName,
   getConfirmandDisplayName,
+  getConvertDisplayName,
   getDeceasedDisplayName,
   getFatherDisplayName,
   getFemaleSponsorDisplayName,
@@ -124,6 +127,11 @@ export function mapBaptismRecordToCertificate(record, options = {}) {
   const baptism = formatCertificateLongDate(record.baptismDate)
   const sponsors = mapSponsors(record.godparents)
 
+  const ministerName = blank(stripLeadingClericalTitle(record.minister))
+  const baptismPhrase = [baptism.dayOrdinal, baptism.monthYear]
+    .filter(Boolean)
+    .join(' ')
+
   return {
     type: CERTIFICATE_TYPES.BAPTISM,
     ...sharedChrome(CERTIFICATE_TITLES.baptism),
@@ -131,6 +139,7 @@ export function mapBaptismRecordToCertificate(record, options = {}) {
     recordNumber: blank(
       formatBaptismRecordNumber(record.recordYear, record.recordNumber),
     ),
+    subjectName: blank(getChildDisplayName(record)),
     childName: blank(getChildDisplayName(record)),
     fatherName: blank(getFatherDisplayName(record)),
     motherName: blank(getMotherDisplayName(record)),
@@ -138,10 +147,35 @@ export function mapBaptismRecordToCertificate(record, options = {}) {
     birthMonthYear: birth.monthYear,
     baptismDayOrdinal: baptism.dayOrdinal,
     baptismMonthYear: baptism.monthYear,
-    ministerName: blank(stripLeadingClericalTitle(record.minister)),
+    sacramentDayOrdinal: baptism.dayOrdinal,
+    sacramentMonthYear: baptism.monthYear,
+    ministerName,
     sponsor1: sponsors.sponsor1,
     sponsor2: sponsors.sponsor2,
     sponsorsExtra: sponsors.sponsorsExtra,
+    riteLines: [
+      'WAS SOLEMNLY BAPTIZED',
+      'ACCORDING TO THE RITE',
+      'OF THE ROMAN CATHOLIC CHURCH',
+    ],
+    detailRows: [
+      { label: 'Baptism Date', value: baptismPhrase || '—' },
+      {
+        label: 'Priest',
+        value: ministerName
+          ? `Reverend Father ${ministerName}`
+          : 'Reverend Father —',
+      },
+      {
+        label: 'Sponsors',
+        value: [sponsors.sponsor1, sponsors.sponsor2, ...sponsors.sponsorsExtra]
+          .filter(Boolean)
+          .join(' · ') || '—',
+      },
+    ],
+    attestationPrefix:
+      'This certificate is issued based on the official Baptismal Record maintained by',
+    layoutClassName: 'pc-certificate-baptism',
     ...issuedFields(issuedAt),
   }
 }
@@ -163,6 +197,13 @@ export function mapConfirmationRecordToCertificate(record, options = {}) {
   )
   const confirmation = formatCertificateLongDate(record.confirmationDate)
 
+  const ministerName = blank(stripLeadingClericalTitle(record.minister))
+  const sponsor1 = blank(getMaleSponsorDisplayName(record))
+  const sponsor2 = blank(getFemaleSponsorDisplayName(record))
+  const confirmationPhrase = [confirmation.dayOrdinal, confirmation.monthYear]
+    .filter(Boolean)
+    .join(' ')
+
   return {
     type: CERTIFICATE_TYPES.CONFIRMATION,
     ...sharedChrome(CERTIFICATE_TITLES.confirmation),
@@ -171,6 +212,7 @@ export function mapConfirmationRecordToCertificate(record, options = {}) {
     recordNumber: blank(
       formatConfirmationRecordNumber(record.recordYear, record.recordNumber),
     ),
+    subjectName: blank(getConfirmandDisplayName(record)),
     confirmandName: blank(getConfirmandDisplayName(record)),
     fatherName: blank(getFatherDisplayName(record)),
     motherName: blank(getMotherDisplayName(record)),
@@ -179,9 +221,36 @@ export function mapConfirmationRecordToCertificate(record, options = {}) {
     birthMonthYear: birth.monthYear,
     confirmationDayOrdinal: confirmation.dayOrdinal,
     confirmationMonthYear: confirmation.monthYear,
-    ministerName: blank(stripLeadingClericalTitle(record.minister)),
-    sponsor1: blank(getMaleSponsorDisplayName(record)),
-    sponsor2: blank(getFemaleSponsorDisplayName(record)),
+    sacramentDayOrdinal: confirmation.dayOrdinal,
+    sacramentMonthYear: confirmation.monthYear,
+    ministerName,
+    sponsor1,
+    sponsor2,
+    riteLines: [
+      'WAS SOLEMNLY CONFIRMED',
+      'ACCORDING TO THE RITE',
+      'OF THE ROMAN CATHOLIC CHURCH',
+    ],
+    detailRows: [
+      { label: 'Confirmation Date', value: confirmationPhrase || '—' },
+      {
+        label: 'Priest',
+        value: ministerName
+          ? `Reverend Father ${ministerName}`
+          : 'Reverend Father —',
+      },
+      {
+        label: 'Sponsors',
+        value: [sponsor1, sponsor2].filter(Boolean).join(' · ') || '—',
+      },
+      {
+        label: 'Parish Church',
+        value: CERTIFICATE_CONFIRMATION_PARISH_CHURCH || '—',
+      },
+    ],
+    attestationPrefix:
+      'This certificate is issued based on the official Confirmation Record maintained by',
+    layoutClassName: 'pc-certificate-confirmation',
     ...issuedFields(issuedAt),
   }
 }
@@ -207,6 +276,16 @@ export function mapMarriageRecordToCertificate(record, options = {}) {
     .map((item) => getGodparentDisplayName(item))
     .filter((name) => name && name !== '—')
 
+  const groomName = blank(getGroomDisplayName(record))
+  const brideName = blank(getBrideDisplayName(record))
+  const ministerName = blank(
+    stripLeadingClericalTitle(record.minister ?? record.officiatingMinister),
+  )
+  const marriagePhrase = [marriage.dayOrdinal, marriage.monthYear]
+    .filter(Boolean)
+    .join(' ')
+  const subjectName = [groomName, brideName].filter(Boolean).join(' and ')
+
   return {
     type: CERTIFICATE_TYPES.MARRIAGE,
     ...sharedChrome(CERTIFICATE_TITLES.marriage),
@@ -214,8 +293,9 @@ export function mapMarriageRecordToCertificate(record, options = {}) {
     recordNumber: blank(
       formatMarriageRecordNumber(record.recordYear, record.recordNumber),
     ),
-    groomName: blank(getGroomDisplayName(record)),
-    brideName: blank(getBrideDisplayName(record)),
+    subjectName,
+    groomName,
+    brideName,
     groomCivilStatus: civilStatusLabel(record.groomCivilStatus),
     brideCivilStatus: civilStatusLabel(record.brideCivilStatus),
     groomAgeLabel: ageLabel(record.groomAge),
@@ -254,13 +334,37 @@ export function mapMarriageRecordToCertificate(record, options = {}) {
     ),
     marriageDayOrdinal: marriage.dayOrdinal,
     marriageMonthYear: marriage.monthYear,
+    sacramentDayOrdinal: marriage.dayOrdinal,
+    sacramentMonthYear: marriage.monthYear,
     marriagePlace: blank(record.marriagePlace),
-    ministerName: blank(
-      stripLeadingClericalTitle(record.minister ?? record.officiatingMinister),
-    ),
+    ministerName,
     witness1: witnesses[0] || '',
     witness2: witnesses[1] || '',
     witnessesExtra: witnesses.slice(2),
+    showParentage: false,
+    showBorn: false,
+    riteLines: [
+      'WERE SOLEMNLY UNITED',
+      'IN HOLY MATRIMONY',
+      'ACCORDING TO THE RITE OF THE ROMAN CATHOLIC CHURCH',
+    ],
+    detailRows: [
+      { label: 'Marriage Date', value: marriagePhrase || '—' },
+      { label: 'Place of Marriage', value: blank(record.marriagePlace) || '—' },
+      {
+        label: 'Priest',
+        value: ministerName
+          ? `Reverend Father ${ministerName}`
+          : 'Reverend Father —',
+      },
+      {
+        label: 'Principal Sponsors',
+        value: witnesses.length ? witnesses.join(' · ') : '—',
+      },
+    ],
+    attestationPrefix:
+      'This certificate is issued based on the official Marriage Record maintained by',
+    layoutClassName: 'pc-certificate-marriage',
     ...issuedFields(issuedAt),
   }
 }
@@ -312,6 +416,17 @@ export function mapDeathRecordToCertificate(record, options = {}) {
   const burial = formatCertificateLongDate(record.burialDate)
   const related = blank(getRelatedPersonDisplayName(record))
 
+  const ministerName = blank(
+    stripLeadingClericalTitle(record.minister ?? record.officiatingMinister),
+  )
+  const deathPhrase = [death.dayOrdinal, death.monthYear]
+    .filter(Boolean)
+    .join(' ')
+  const burialPhrase = [burial.dayOrdinal, burial.monthYear]
+    .filter(Boolean)
+    .join(' ')
+  const relatedLabel = relatedPersonLabel(record.relationship, record.gender)
+
   return {
     type: CERTIFICATE_TYPES.DEATH,
     ...sharedChrome(CERTIFICATE_TITLES.death),
@@ -319,25 +434,122 @@ export function mapDeathRecordToCertificate(record, options = {}) {
     recordNumber: blank(
       formatDeathRecordNumber(record.recordYear, record.recordNumber),
     ),
+    subjectName: blank(getDeceasedDisplayName(record)),
     deceasedName: blank(getDeceasedDisplayName(record)),
     civilStatus: civilStatusLabel(record.status ?? record.civilStatus),
     residenceDisplay: blank(formatDeathResidence(record)),
-    relatedPersonLabel: relatedPersonLabel(
-      record.relationship,
-      record.gender,
-    ),
+    relatedPersonLabel: relatedLabel,
     relatedPersonLine: related,
+    parentageLabel: relatedLabel,
+    parentageSingleName: related || '',
+    showParentage: Boolean(related),
+    showBorn: false,
     deathDayOrdinal: death.dayOrdinal,
     deathMonthYear: death.monthYear,
     burialDayOrdinal: burial.dayOrdinal,
     burialMonthYear: burial.monthYear,
+    sacramentDayOrdinal: burial.dayOrdinal,
+    sacramentMonthYear: burial.monthYear,
     placeOfBurial: blank(record.placeOfBurial),
     causeOfDeath: blank(record.sickness),
     ageLabel: ageLabel(record.age),
     lastSacramentsText: lastSacramentsText(record),
-    ministerName: blank(
-      stripLeadingClericalTitle(record.minister ?? record.officiatingMinister),
+    ministerName,
+    riteLines: [
+      'DEPARTED THIS LIFE',
+      'AND WAS BURIED',
+      'ACCORDING TO THE RITE OF THE ROMAN CATHOLIC CHURCH',
+    ],
+    detailRows: [
+      { label: 'Date of Death', value: deathPhrase || '—' },
+      { label: 'Burial Date', value: burialPhrase || '—' },
+      { label: 'Place of Burial', value: blank(record.placeOfBurial) || '—' },
+      { label: 'Age', value: ageLabel(record.age) || '—' },
+      {
+        label: 'Priest',
+        value: ministerName
+          ? `Reverend Father ${ministerName}`
+          : 'Reverend Father —',
+      },
+    ],
+    attestationPrefix:
+      'This certificate is issued based on the official Death Record maintained by',
+    layoutClassName: 'pc-certificate-death',
+    ...issuedFields(issuedAt),
+  }
+}
+
+/**
+ * @param {object} record
+ * @param {{ issuedAt?: Date }} [options]
+ */
+export function mapConversionRecordToCertificate(record, options = {}) {
+  if (!record) {
+    throw new Error('Conversion record is required to generate a certificate.')
+  }
+
+  const issuedAt = options.issuedAt || new Date()
+  const reception = formatCertificateLongDate(record.dateOfReception)
+  const originalBaptism = formatCertificateLongDate(record.originalBaptismDate)
+  const ministerName = blank(
+    stripLeadingClericalTitle(record.receivingMinister ?? record.minister),
+  )
+  const receptionPhrase = [reception.dayOrdinal, reception.monthYear]
+    .filter(Boolean)
+    .join(' ')
+  const originalBaptismPhrase = [
+    originalBaptism.dayOrdinal,
+    originalBaptism.monthYear,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  return {
+    type: CERTIFICATE_TYPES.CONVERSION,
+    ...sharedChrome(CERTIFICATE_TITLES.conversion),
+    recordId: record.id || '',
+    recordNumber: blank(
+      formatConversionRecordNumber(record.recordYear, record.recordNumber),
     ),
+    subjectName: blank(getConvertDisplayName(record)),
+    fatherName: blank(getFatherDisplayName(record)),
+    motherName: blank(getMotherDisplayName(record)),
+    birthDayOrdinal: originalBaptism.dayOrdinal,
+    birthMonthYear: originalBaptism.monthYear,
+    bornLabel: 'originally baptized on',
+    showBorn: Boolean(originalBaptismPhrase),
+    sacramentDayOrdinal: reception.dayOrdinal,
+    sacramentMonthYear: reception.monthYear,
+    ministerName,
+    riteLines: [
+      'WAS SOLEMNLY RECEIVED',
+      'INTO FULL COMMUNION',
+      'WITH THE ROMAN CATHOLIC CHURCH',
+    ],
+    detailRows: [
+      { label: 'Date of Reception', value: receptionPhrase || '—' },
+      {
+        label: 'Receiving Minister',
+        value: ministerName
+          ? `Reverend Father ${ministerName}`
+          : 'Reverend Father —',
+      },
+      {
+        label: 'Original Baptism',
+        value: originalBaptismPhrase || '—',
+      },
+      {
+        label: 'Original Denomination',
+        value: blank(record.originalBaptismDenomination) || '—',
+      },
+      {
+        label: 'Original Baptism Place',
+        value: blank(record.originalBaptismPlace) || '—',
+      },
+    ],
+    attestationPrefix:
+      'This certificate is issued based on the official Conversion Record maintained by',
+    layoutClassName: 'pc-certificate-conversion',
     ...issuedFields(issuedAt),
   }
 }
@@ -371,6 +583,12 @@ export async function getCertificateSourceRecord(sacrament, recordId) {
     return record
   }
 
+  if (sacrament === CERTIFICATE_TYPES.CONVERSION) {
+    const record = await getConversionRecordById(recordId)
+    if (!record) throw new Error('Conversion record was not found.')
+    return record
+  }
+
   throw new Error(
     `Certificate generation for "${sacrament}" is not available yet.`,
   )
@@ -396,6 +614,9 @@ export async function buildCertificateData(sacrament, recordId, options = {}) {
   }
   if (sacrament === CERTIFICATE_TYPES.DEATH) {
     return mapDeathRecordToCertificate(record, options)
+  }
+  if (sacrament === CERTIFICATE_TYPES.CONVERSION) {
+    return mapConversionRecordToCertificate(record, options)
   }
 
   throw new Error(
@@ -490,7 +711,9 @@ export async function downloadCertificatePdf(element, data) {
         ? 'Marriage'
         : data?.type === CERTIFICATE_TYPES.DEATH
           ? 'Death'
-          : 'Baptism'
+          : data?.type === CERTIFICATE_TYPES.CONVERSION
+            ? 'Conversion'
+            : 'Baptism'
 
   const fileName = `${prefix}_Certificate_${
     data?.recordNumber || data?.recordId || 'record'

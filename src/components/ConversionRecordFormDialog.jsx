@@ -806,7 +806,11 @@ function ConversionRecordFormDialog({
             Cancel
           </Button>
           {isEdit ? (
-            <CertificatePrepActions sacrament="conversion" disabled={saving} />
+            <CertificatePrepActions
+              sacrament="conversion"
+              recordId={record?.id}
+              disabled={saving}
+            />
           ) : null}
           <Button
             onClick={handleSave}

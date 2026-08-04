@@ -14,34 +14,16 @@ import {
 } from '@mui/material'
 import { MARIAN_BLUE } from '../../theme/parishTheme'
 import BaptismCertificate from '../certificates/BaptismCertificate'
-import ConfirmationCertificate from '../certificates/ConfirmationCertificate'
-import MarriageCertificate from '../certificates/MarriageCertificate'
-import DeathCertificate from '../certificates/DeathCertificate'
 import {
   buildCertificateData,
   downloadCertificatePdf,
   isCertificateImplemented,
 } from '../../services/certificateService'
-import { CERTIFICATE_TYPES } from '../../constants/certificates'
-
-function renderCertificate(sacrament, data) {
-  if (sacrament === CERTIFICATE_TYPES.BAPTISM) {
-    return <BaptismCertificate data={data} />
-  }
-  if (sacrament === CERTIFICATE_TYPES.CONFIRMATION) {
-    return <ConfirmationCertificate data={data} />
-  }
-  if (sacrament === CERTIFICATE_TYPES.MARRIAGE) {
-    return <MarriageCertificate data={data} />
-  }
-  if (sacrament === CERTIFICATE_TYPES.DEATH) {
-    return <DeathCertificate data={data} />
-  }
-  return null
-}
 
 /**
  * Preview / Print / Download PDF dialog for official certificates.
+ * All sacraments reuse the Baptism certificate layout engine with
+ * sacrament-specific titles, labels, and mapped record data.
  */
 export default function CertificatePreviewDialog({
   open,
@@ -200,7 +182,7 @@ export default function CertificatePreviewDialog({
                 bgcolor: '#fff',
               }}
             >
-              {renderCertificate(sacrament, data)}
+              <BaptismCertificate data={data} />
             </Box>
           </Box>
         ) : null}

@@ -27,6 +27,7 @@ export const CERTIFICATE_TYPES = {
   CONFIRMATION: 'confirmation',
   MARRIAGE: 'marriage',
   DEATH: 'death',
+  CONVERSION: 'conversion',
 }
 
 export const CERTIFICATE_TITLES = {
@@ -34,14 +35,19 @@ export const CERTIFICATE_TITLES = {
   confirmation: 'Certificate of Confirmation',
   marriage: 'Certificate of Marriage',
   death: 'Certificate of Death',
+  conversion: 'Certificate of Conversion',
 }
 
-/** Sacraments with live certificate generators. */
+/**
+ * All sacramental modules generate certificates through the shared Baptism
+ * layout engine until dedicated templates replace it.
+ */
 export const CERTIFICATE_IMPLEMENTED = new Set([
   CERTIFICATE_TYPES.BAPTISM,
   CERTIFICATE_TYPES.CONFIRMATION,
   CERTIFICATE_TYPES.MARRIAGE,
   CERTIFICATE_TYPES.DEATH,
+  CERTIFICATE_TYPES.CONVERSION,
 ])
 
 /**

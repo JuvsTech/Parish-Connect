@@ -1,10 +1,12 @@
 # Parish Connect — System Documentation
 
+**Product:** Parish Connect **v1.0** (production-ready implementation)  
 **Parish:** Immaculate Conception of the Virgin Mary Parish  
 **Location:** Bani, Pangasinan  
 **Diocese:** The Roman Catholic Diocese of Alaminos  
 
-**Document purpose:** Accurate description of the **current production implementation**, derived from the application source code. Intended for thesis panels, parish staff, and future developers.
+**Document purpose:** Accurate description of the **current production implementation**, derived from the application source code. Intended for thesis panels, parish staff, and future developers.  
+**Source of truth:** Application source code under `src/` and Firebase rules in the repository.
 
 ---
 
@@ -35,19 +37,64 @@
 23. [Search and Filtering](#23-search-and-filtering)
 24. [Printing](#24-printing)
 25. [Audit Information](#25-audit-information)
-26. [Responsive Design](#26-responsive-design)
+26. [User Interface](#26-user-interface)
 27. [Error Handling](#27-error-handling)
 28. [Security Features](#28-security-features)
 29. [Production Optimizations](#29-production-optimizations)
-30. [Planned / Remaining Improvements](#30-planned--remaining-improvements)
+30. [Business Rules](#30-business-rules)
+31. [Deployment](#31-deployment)
+32. [Testing](#32-testing)
+33. [Known Limitations](#33-known-limitations)
+34. [Future Enhancements](#34-future-enhancements)
+35. [Revision History](#35-revision-history)
 
 ---
 
 ## 1. System Overview
 
-Parish Connect is a web-based parish administration system for **Immaculate Conception of the Virgin Mary Parish (Bani, Pangasinan)**. Authorized parish staff and administrators use it to manage sacramental records, Mass intentions, ministers, parish calendar events, certificates, and reports.
+### Project description
 
-The application is a **single-page React application** that talks to **Firebase Authentication** and **Cloud Firestore**. It is designed for internal parish office use (Administrator and Staff roles).
+Parish Connect is a web-based parish administration system for **Immaculate Conception of the Virgin Mary Parish (Bani, Pangasinan)** under **The Roman Catholic Diocese of Alaminos**. It digitizes day-to-day parish office work for sacramental registers, Mass intentions, ministers, the parish calendar, official certificates, and filtered reports.
+
+The application is a **single-page React application** deployed on **Vercel**, using **Firebase Authentication**, **Cloud Firestore**, and (prepared) **Firebase Storage**. It is designed for internal parish office use.
+
+### Objectives
+
+- Maintain accurate sacramental and Mass Intention records in a centralized database
+- Support scheduling through an interactive parish calendar
+- Generate printable and PDF certificates from saved records
+- Produce filtered reports for parish office use
+- Enforce role-based access for Administrator and Staff accounts
+
+### Scope (v1.0)
+
+**In scope (implemented):** authentication and RBAC; Dashboard and calendar; Baptism, Confirmation, Marriage, Death, and Conversion registers; Mass Intentions; Ministers; Reports (preview / print / PDF); Certificate Preview with print and PDF for Baptism, Confirmation, Marriage, and Death; user profile and password change; client-side validation; Firestore and Storage security rules in the repository.
+
+**Out of scope for v1.0 (see Future Enhancements):** conversion certificates, QR certificate verification, OCR digitization, AI duplicate detection, mobile apps, multi-parish tenancy, full audit-log administration UI, and related advanced features.
+
+### Target users
+
+| Role | Typical users | Access |
+|------|---------------|--------|
+| Administrator (`admin`) | Parish priest / designated office administrator | Full admin shell; create users in Firestore rules; read audit logs |
+| Staff (`staff`) | Parish secretaries / office staff | Full operational modules for records, calendar, reports, certificates |
+
+### System architecture (current)
+
+```
+Browser (React 19 + Vite + MUI)
+        │
+        ├── Firebase Authentication  (email/password sessions)
+        ├── Cloud Firestore          (all operational data)
+        └── Firebase Storage         (SDK + rules prepared; profile photo upload UI not wired)
+        │
+Hosting: Vercel (SPA rewrite to index.html)
+Rules / project config: Firebase CLI (`firestore.rules`, `storage.rules`)
+```
+
+- **Frontend:** React SPA with React Router, Material UI, lazy-loaded routes, and browser-side PDF/print generation
+- **Backend:** Firebase BaaS (no custom Node API in this repository)
+- **Deployment:** GitHub repository → Vercel frontend; Firebase project for Auth, Firestore, and Storage
 
 ### Design language
 
@@ -69,6 +116,8 @@ The interface uses a Marian blue parish theme (`#0B3D91` and related accents), M
 | Ministers management | ✔ Implemented |
 | Reports (preview, PDF export, print, recent reports) | ✔ Implemented |
 | Certificate generation (Baptism, Confirmation, Marriage, Death) | ✔ Implemented |
+| Certificate print via `react-to-print` (native Print Preview) | ✔ Implemented |
+| Certificate PDF via html2canvas + jsPDF | ✔ Implemented |
 | User profile and password change | ✔ Implemented |
 | Validation, Proper Case, duplicate record numbers | ✔ Implemented |
 | Unsaved changes warnings | ✔ Implemented |
@@ -77,6 +126,7 @@ The interface uses a Marian blue parish theme (`#0B3D91` and related accents), M
 | Firestore and Storage security rules files | ✔ Implemented in repo |
 | Production code splitting / lazy loading | ✔ Implemented |
 | Responsive admin layout | ✔ Implemented |
+| Vercel SPA hosting configuration | ✔ Implemented |
 
 ### Not fully delivered in the running app
 
@@ -93,7 +143,7 @@ The interface uses a Marian blue parish theme (`#0B3D91` and related accents), M
 
 Verified from `package.json` (declared dependency versions):
 
-### Runtime
+### Frontend
 
 | Technology | Declared version | Role in Parish Connect |
 |------------|------------------|-------------------------|
@@ -103,12 +153,29 @@ Verified from `package.json` (declared dependency versions):
 | Material UI (`@mui/material`) | `^9.2.0` | Component library |
 | MUI Icons (`@mui/icons-material`) | `^9.2.0` | Icons |
 | Emotion (`@emotion/react`, `@emotion/styled`) | `^11.14.0` / `^11.14.1` | MUI styling |
-| Firebase | `^12.16.0` | Auth, Firestore, Storage SDK |
 | React Router DOM | `^7.18.1` | Client-side routing |
+| react-to-print | `^3.3.0` | Certificate Print Preview from the preview dialog |
 | jsPDF | `^4.2.1` | PDF generation (certificates & reports) |
 | jsPDF AutoTable | `^5.0.8` | Tabular report PDFs |
 | html2canvas | `^1.4.1` | Certificate HTML → canvas → PDF |
 | phil-reg-prov-mun-brgy | `^1.1.0` | Philippine place hierarchy data |
+
+### Backend (Firebase)
+
+| Service | Role |
+|---------|------|
+| Firebase Authentication | Email/password sign-in, password reset, session state |
+| Cloud Firestore | Primary database for all operational collections |
+| Firebase Storage | Initialized; rules prepared for profile photos (upload UI not wired) |
+| Firebase JS SDK | `^12.16.0` |
+
+### Deployment & version control
+
+| Technology | Role |
+|------------|------|
+| Git / GitHub | Source control and collaboration |
+| Vercel | Frontend hosting; SPA rewrite via `vercel.json` |
+| Firebase project | Auth, Firestore, Storage, and deployed security rules |
 
 ### Declared but unused in `src/`
 
@@ -124,10 +191,6 @@ The following appear in `package.json` but have **no imports** under `src/` in t
 |------|---------|---------|
 | `@vitejs/plugin-react` | `^6.0.3` | React support for Vite |
 | oxlint | `^1.71.0` | Linting (`npm run lint`) |
-
-### Hosting / SPA
-
-- `vercel.json` rewrites all routes to `/index.html` for client-side routing.
 
 ---
 
@@ -356,6 +419,7 @@ Titles include Batch Baptism, Holy Mass, Parish Meeting, Seminar, Fiesta, Novena
 
 - Sacramental events on the calendar are **read-only projections**; editing happens in the sacramental module or Mass Intentions module.
 - Mass Intentions are typically managed under `/mass-intentions`; they appear on the calendar when synced as events with source `massIntention`.
+- Existing events on a date are always previewed in the date overview before a second create action on that day.
 
 ---
 
@@ -788,11 +852,12 @@ Produce official-looking parish certificates from saved sacramental records for 
 
 ### How generation works (actual implementation)
 
-1. Staff click **Generate … Certificate** on a saved record.
-2. The app loads the Firestore record and maps fields into certificate view data (`buildCertificateData`).
-3. A React certificate component renders an on-screen preview (layout, diocese logo, parish seal, typography).
-4. **Download PDF:** `html2canvas` captures the certificate element; **jsPDF** builds an A4 PDF for download.
-5. **Print:** certificate HTML is sent to a print workflow (`printCertificateElement`).
+1. Staff click **Generate … Certificate** on a saved record (record details dialog or edit form actions via `CertificatePrepActions`).
+2. The app opens **Certificate Preview** (`CertificatePreviewDialog`).
+3. The app loads the Firestore record and maps fields into certificate view data (`buildCertificateData` in `certificateService.js`).
+4. A React certificate component renders the on-screen preview (layout, diocese logo, parish seal, typography) — e.g. `BaptismCertificate`, `ConfirmationCertificate`, `MarriageCertificate`, `DeathCertificate`.
+5. **Print:** `react-to-print` (`useReactToPrint`) prints the **already rendered** certificate preview element and opens the browser’s **native Print Preview** (no `window.open` popup / `about:blank` tab).
+6. **Download PDF:** `html2canvas` captures the certificate element; **jsPDF** builds an A4 PDF for download.
 
 This is **dynamic field mapping into HTML certificate components**, not a Word mail-merge engine running inside the browser.
 
@@ -817,21 +882,43 @@ These DOCX files guide visual/content alignment. **The application does not curr
 - Parish name / address constants used on certificates (see `src/constants/certificates.js`)
 - Assets under `src/assets/certificates/` (logos, seal, fonts)
 
+### Certificate Preview
+
+- Dialog title: **Certificate Preview**
+- Shows loading state while record data is mapped
+- Renders the full official certificate layout for review before print/PDF
+- Actions: **Close**, **Print**, **Download PDF**
+
+### Printing
+
+- Triggered from the Print button in Certificate Preview
+- Uses `react-to-print` against the preview `ref`
+- Opens the browser native Print Preview for the visible certificate
+- Certificate CSS (`certificate.css`) includes `@media print` / A4 portrait rules
+
+### PDF Export
+
+- Triggered from **Download PDF** in Certificate Preview
+- Pipeline: rendered certificate DOM → `html2canvas` → PNG → `jsPDF` A4 download
+- File name pattern includes sacrament prefix and record number/id
+
 ### User workflow
 
 1. Save the sacramental record.
-2. Open Generate Certificate.
-3. Preview → Print and/or Download PDF.
+2. Click **Generate … Certificate**.
+3. Review Certificate Preview.
+4. Print (native Print Preview) and/or Download PDF.
 
 ### Business rules
 
-- A saved `recordId` is required.
+- A saved `recordId` is required; certificates are generated only from existing Firestore records.
 - Unimplemented sacraments show the Certificate Coming Soon dialog.
 - Certificate generation does not alter the source sacramental record.
 
 ### Important notes
 
-- Lazy-loaded so PDF libraries are not part of every page’s initial download.
+- Certificate Preview is opened from `CertificatePrepActions` on saved records; PDF generation uses `html2canvas` + `jsPDF` only when Download PDF is clicked.
+- Route-level pages remain lazy-loaded via `React.lazy` in `App.jsx`.
 - Conversion remains explicitly unimplemented in `CERTIFICATE_IMPLEMENTED`.
 
 ---
@@ -919,17 +1006,17 @@ Exact collection names from `src/constants/collections.js`:
 
 | Constant | Collection ID | Purpose |
 |----------|---------------|---------|
-| `BAPTISM` | `baptism` | Baptism records |
-| `CONFIRMATION` | `confirmation` | Confirmation records |
-| `MARRIAGE` | `marriage` | Marriage records |
-| `DEATH` | `death` | Death / burial records |
-| `CONVERSION` | `conversion` | Conversion / reception records |
-| `MASS_INTENTIONS` | `massIntentions` | Mass intention records |
-| `EVENTS` | `events` | Parish calendar events (manual + synced) |
-| `USERS` | `users` | User profiles / roles |
-| `MINISTERS` | `ministers` | Minister roster |
-| `REPORTS` | `reports` | Report generation metadata |
-| `AUDIT_LOGS` | `auditLogs` | Security / activity audit trail |
+| `USERS` | `users` | User profiles, roles, account status, and personal profile fields keyed by Firebase Auth UID |
+| `BAPTISM` | `baptism` | Baptismal register records (new/old workflows, requirements, calendar link) |
+| `CONFIRMATION` | `confirmation` | Confirmation register records |
+| `MARRIAGE` | `marriage` | Marriage register records (spouses, sponsors, documentary requirements) |
+| `DEATH` | `death` | Death / burial register records |
+| `CONVERSION` | `conversion` | Conversion / reception into the Church register records |
+| `MASS_INTENTIONS` | `massIntentions` | Mass intention requests and status lifecycle |
+| `EVENTS` | `events` | Parish calendar events (manual entries + synced sacramental / Mass Intention markers) |
+| `MINISTERS` | `ministers` | Minister roster used in sacramental and Mass Intention forms |
+| `REPORTS` | `reports` | Report generation metadata (filters/title for recent reports; not a full archive dump) |
+| `AUDIT_LOGS` | `auditLogs` | Security / activity audit trail entries (written for selected modules; **no dedicated admin UI page**) |
 
 ### Document relationships
 
@@ -1061,8 +1148,8 @@ Help staff locate records quickly in large registers.
 
 | Feature | Mechanism |
 |---------|-----------|
-| Certificates | Print from certificate preview (`printCertificateElement`) |
-| Reports | Print from report preview (`window.print` on preview dialog content) |
+| Certificates | Print from Certificate Preview using **`react-to-print`** (`useReactToPrint` on the rendered certificate). Opens the browser native Print Preview. Does **not** use `window.open` / popup tabs. |
+| Reports | Print from report preview using **`window.print()`** on the preview dialog content, with `no-print` / `@media print` styles |
 
 PDF download is separate from printing but often used as an alternative office workflow.
 
@@ -1094,20 +1181,47 @@ Record view dialogs commonly show Created By / Created At / Updated By / Updated
 
 ---
 
-## 26. Responsive Design
+## 26. User Interface
 
 ### Module purpose
 
-Support parish office use on desktop and smaller screens.
+Provide a consistent parish-office UI for desktop-first use with usable layouts on smaller screens.
 
-### Implemented approach
+### Responsive design
 
 - Material UI responsive Grid / Stack layouts
 - Collapsible navigation drawer in `AdminLayout`
 - Dialogs that go full-screen on small breakpoints where configured (for example report preview)
 - Touch-friendly icon actions in tables
+- Primary design target: staff desktop/laptop browser
 
-The primary design target remains a staff desktop/laptop browser, with usable layouts on narrower viewports.
+### Material UI components
+
+Common patterns include AppBar/Drawer navigation, Dialogs, Tables, Forms (TextField, Select, Date controls), Buttons, Alerts, Snackbars, CircularProgress loading indicators, and Chips for status/requirements.
+
+### Dialogs
+
+- Record view / add / edit form dialogs per sacrament
+- Certificate Preview dialog
+- Report Preview dialog
+- Calendar date overview and schedule chooser dialogs
+- Manual event form dialog
+- Mass Intention status confirmation dialogs
+- Unsaved-changes confirmation dialog
+- Certificate Coming Soon dialog (Conversion)
+
+### Notifications and loading states
+
+- Snackbar alerts for success, info, and error feedback
+- CircularProgress for async loads and exports
+- Empty states when lists have no matching rows
+- Protected-route profile-load retry UI when the user profile cannot be loaded
+
+### Confirmation dialogs
+
+- Mass Intention **Mark as Offered** / **Cancel Mass Intention**
+- Unsaved changes discard confirmation
+- Delete confirmations (Mass Intention delete when unlocked; manual calendar event delete)
 
 ---
 
@@ -1126,31 +1240,54 @@ The primary design target remains a staff desktop/laptop browser, with usable la
 
 ## 28. Security Features
 
-### Application-level
+### Authentication requirement
 
-- Firebase Authentication required for the admin shell
-- Role checks (`admin`, `staff`) in `ProtectedRoute`
-- Inactive status denied
-- Self-profile updates cannot change role/email/status privileges
+- Firebase Authentication (email/password) is required for the admin shell
+- Public routes: `/login` and the unauthorized experience
+- Session tracked with `onAuthStateChanged`
+
+### Role-based access control (RBAC)
+
+| Role (Firestore) | Normalized app role | Access |
+|----------------|---------------------|--------|
+| `admin` or `administrator` | `admin` | Admin shell + admin-only Firestore capabilities (create users, read audit logs) |
+| `staff` | `staff` | Admin shell operational modules |
+
+- `ProtectedRoute` / `ProtectedShell` allow only `admin` and `staff`
+- Missing/invalid role or inactive `status` → `/unauthorized`
+- Profile load failure → retry UI (not treated as unauthorized)
+
+### Protected routes
+
+All routes under the admin shell (`/`, records, mass intentions, ministers, reports, profile) require a signed-in active user with an allowed role. See §5 Application Routes.
+
+### Application-level controls
+
+- Self-profile updates cannot change role / email / status privileges in UI and rules
 - Mass Intention locked records blocked in UI and service layer
 - Sacramental calendar events cannot be casually overwritten from the calendar editor
 
 ### Firestore Security Rules (`firestore.rules`)
 
-Implemented in the repository and referenced by `firebase.json`:
+Helpers: signed-in check, document owner, active user, admin (`admin`/`administrator`), staff-or-admin.
 
-- Signed-in **active** admin/staff for operational collections:
-  - `baptism`, `confirmation`, `marriage`, `death`, `conversion`, `massIntentions`, `events`, `ministers`, `reports`
-- `users`: owner read/update with restricted keys; admin create/manage; delete denied
-- `auditLogs`: admin read; staff/admin create with required fields; update/delete denied
+| Collection / path | Access |
+|-------------------|--------|
+| `users/{userId}` | **Read:** owner or admin. **Create:** admin only. **Update:** admin (full) **or** owner with allowlisted personal/system keys only (`firstName`, `middleName`, `lastName`, `phone`, `address`, `birthday`, `gender`, `photoURL`, `updatedAt`, `updatedBy`, `lastLogin`, `lastPasswordChange`) and immutable `role` / `email` / `status` on self-update. **Delete:** denied. |
+| `auditLogs/{logId}` | **Read:** admin. **Create:** staff/admin with required fields and `performedByUid == auth.uid`. **Update/Delete:** denied. |
+| Operational collections | Active staff/admin read/write: `baptism`, `confirmation`, `marriage`, `death`, `conversion`, `massIntentions`, `events`, `ministers`, `reports` |
 
 ### Storage Security Rules (`storage.rules`)
 
-Implemented for `profilePhotos/{userId}/{fileName}` (owner-only, image type/size limits).
+Path: `profilePhotos/{userId}/{fileName}`
+
+- Owner may read / create / update / delete
+- Content type: jpeg, png, or webp
+- Max size: 5 MB
 
 ### Important note for thesis / deployment
 
-Rules files exist in the project. They must be **deployed** to the Firebase project (`firebase deploy --only firestore:rules,storage`) to enforce in production. The application code alone is not a substitute for deployed rules.
+Rules files exist in the project and are referenced by `firebase.json`. They must be **deployed** to the Firebase project (`firebase deploy --only firestore:rules,storage`) to enforce in production. The application code alone is not a substitute for deployed rules.
 
 ---
 
@@ -1159,29 +1296,207 @@ Rules files exist in the project. They must be **deployed** to the Firebase proj
 Implemented without changing business behavior:
 
 - Route-level `React.lazy` / `Suspense` for all major pages
-- Dialog-level lazy loading for heavy forms, report preview, and certificate preview
+- Dialog-level lazy loading for heavy forms and report preview where implemented in page modules
 - Vite / Rolldown code-splitting groups for React, MUI, Firebase, Philippine places data, jsPDF, and html2canvas
-- Certificate PDF libraries load only when certificate generation or report PDF export is used
+- Certificate PDF / print libraries load with certificate or report workflows rather than every initial route
 - Philippine place dataset loads with place-enabled forms rather than every initial route
 
 ---
 
-## 30. Planned / Remaining Improvements
+## 30. Business Rules
 
-Based on code that is present but incomplete or unused:
+The following rules are enforced in the current codebase (UI and/or service and/or security rules):
 
-1. **Conversion certificate** — finalize template and enable generation like the other four sacraments.
-2. **Profile photo upload** — wire Firebase Storage upload UI to the existing Storage rules path.
-3. **Optional dependency cleanup** — remove unused packages (`react-hook-form`, `react-icons`, `sweetalert2`) if not needed.
-4. **Calendar Mass Intention quick-create** — either add Mass Intention to `SACRAMENT_SCHEDULE_OPTIONS` or remove the unreachable Dashboard branch.
-5. **Broader audit coverage** — optional `auditLogs` entries for Baptism, Confirmation, Death, and Conversion to match Marriage / Mass Intention depth.
-6. **DOCX export** — only if the parish later requires Word output; current production path is HTML preview + PDF/print.
+### Records and permanence
+
+1. Sacramental registers (Baptism, Confirmation, Marriage, Death, Conversion) have **no hard-delete** UI or service path in v1.0; records are treated as permanent parish register entries (corrections via edit).
+2. Ministers have **no delete** path in v1.0; status may be Active / Retired / Inactive.
+3. Certificate generation requires an existing saved record (`recordId`) and does not modify the source record.
+
+### Calendar
+
+4. Calendar events **cannot be created** on past dates (`dateKey < today`, local date).
+5. Days that already have events open a **date overview / preview** before adding another sacramental record or manual event.
+6. Multiple events per day are supported.
+7. Sacramental-linked calendar events are **view-only** from the calendar; edits happen in the source module.
+8. Past **manual** events open in view mode; manual events may be deleted when allowed by UI rules.
+9. Calendar “Create New Record” options: Baptism, Confirmation, Marriage, Death Record, Conversion (Mass Intention is **not** listed in that chooser).
+
+### Mass Intentions
+
+10. Status lifecycle: Pending → Scheduled → Offered or Cancelled.
+11. **Offered** and **Cancelled** intentions are **read-only** (UI + service reject update/delete).
+12. Delete is allowed only when the intention is **not** locked.
+13. Mark as Offered / Cancel require confirmation dialogs (Cancel may store an optional reason).
+
+### Numbering and formatting
+
+14. Record numbers use sacrament-specific prefixes and year + sequence (see Appendix A); duplicates of year + number are blocked for manual/old encoding.
+15. Person names are stored in **Proper Case**.
+16. Phone numbers (when validated) must be exactly **11 digits**.
+
+### Authentication and profiles
+
+17. Only `admin` / `staff` (active) may use the admin shell.
+18. Users cannot elevate their own role or change email/status through self-service profile update (UI + Firestore rules).
+19. Requirements checklists are informational and **do not block** sacramental saves.
+
+### Reports and certificates
+
+20. Reports store metadata for regeneration; they are not a second full archive of every row.
+21. Certificates are generated only for implemented types (Baptism, Confirmation, Marriage, Death); Conversion shows coming soon.
+
+---
+
+## 31. Deployment
+
+### Architecture
+
+| Layer | Platform |
+|-------|----------|
+| Source control | Git + GitHub |
+| Frontend hosting | Vercel (SPA) |
+| Backend services | Firebase (Authentication, Firestore, Storage) |
+| Security rules | Deployed via Firebase CLI from `firestore.rules` / `storage.rules` |
+
+### Environment variables
+
+Defined in `.env.example` and required at build/runtime for the Vite app:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+
+Configure the same variables in the Vercel project settings for production builds.
+
+### Production build
+
+```bash
+npm install
+npm run build
+```
+
+- Output: Vite `dist/` directory
+- Local preview: `npm run preview`
+- Development: `npm run dev`
+
+### Vercel
+
+- `vercel.json` rewrites all paths to `/index.html` so React Router deep links work.
+- Connect the GitHub repository to Vercel; production builds use `npm run build` and serve `dist`.
+
+### Firebase
+
+```bash
+firebase deploy --only firestore:rules,storage
+```
+
+- `firebase.json` references `firestore.rules` and `storage.rules` (no Firebase Hosting block is required when Vercel hosts the SPA).
+- Create Administrator/Staff user profiles in the `users` collection with Auth UIDs, `role`, and `status` as required by the app.
+
+### Recommended release checklist
+
+1. Merge to the production GitHub branch.
+2. Confirm Vercel build succeeds with Firebase env vars set.
+3. Deploy Firestore and Storage rules if rules changed.
+4. Smoke-test login, one sacramental module, calendar past-date lock, certificate print/PDF, and a report export.
+
+---
+
+## 32. Testing
+
+Parish Connect v1.0 is validated primarily through manual and acceptance testing against the running application (automated test suite is not part of the current repository scripts).
+
+### Manual testing
+
+- Sign-in / sign-out / unauthorized role and inactive status
+- Each sacramental module: list, search/filter, view, create (old), edit, calendar new-record path
+- Calendar: past-date lock, date overview for busy days, manual event CRUD, sacramental event view-only
+- Mass Intentions: status transitions, read-only after Offered/Cancelled, delete rules
+- Ministers: create/edit, Active-only assignment behavior
+- Reports: generate, preview, print, PDF, recent reports
+- Certificates: preview, print (native Print Preview), PDF for Baptism/Confirmation/Marriage/Death; Conversion coming soon
+- Profile: personal field update, password change
+- Unsaved-changes warnings on dirty forms
+
+### Functional testing
+
+Verify business rules from §30 (especially permanence of sacramental records, calendar past dates, Mass Intention locks, duplicate record numbers, Proper Case, and RBAC).
+
+### User acceptance testing (UAT)
+
+Conducted with parish office stakeholders using real or representative parish workflows:
+
+1. Encode historical (old) records
+2. Schedule upcoming sacraments from the calendar
+3. Process Mass Intentions through Offered/Cancelled
+4. Generate certificates for requesting parishioners
+5. Produce monthly/yearly reports for office filing
+
+---
+
+## 33. Known Limitations
+
+These limitations reflect the **current** implementation (not speculative):
+
+1. **Conversion certificates** are not generated (coming-soon dialog only).
+2. **No runtime DOCX export** — DOCX files under `docs/certificate-templates/` are design references only.
+3. **Profile photo upload** — Storage SDK and rules exist; no upload UI in the app.
+4. **Mass Intention quick-create** is not listed in the calendar “Create New Record” options (Dashboard form wiring exists but is unreachable from that chooser).
+5. **Sacramental / minister hard delete** is not implemented (intentional permanence for registers; ministers use status instead).
+6. **Audit Logs** — write helper exists for Profile, Marriage, and Mass Intentions; there is **no Audit Logs page**, and other modules do not write `auditLogs`.
+7. **Unused npm packages** remain in `package.json` (`react-hook-form`, `react-icons`, `sweetalert2`).
+8. Security rules enforce only after **Firebase deploy**; local/app code alone does not apply them.
+9. Primary target is desktop parish-office browsers; mobile is responsive but not a native app.
+
+---
+
+## 34. Future Enhancements
+
+Features **not implemented** in Parish Connect v1.0 (candidates for later releases):
+
+1. **Activity Logs / Audit Trail UI** — admin screen to browse `auditLogs`, plus broader write coverage across all modules
+2. **QR Code Certificate Verification** — public or controlled verification of issued certificates
+3. **OCR Digitization of Parish Books** — scan historical registers into structured records
+4. **AI Duplicate Record Detection** — assist staff in finding likely duplicate persons/records
+5. **Interactive Analytics Dashboard** — charts and deeper metrics beyond current summary cards
+6. **Mobile Application** — native or dedicated mobile client
+7. **Appointment Booking Portal** — external request portal for parishioners
+8. **Multi-Parish Support** — tenancy / diocese-wide deployment model
+9. **Backup and Restore** — operational backup tooling beyond Firebase defaults
+10. **Conversion certificate generation** — parity with Baptism/Confirmation/Marriage/Death
+11. **Profile photo upload** — wire Storage upload to Profile UI
+12. **DOCX certificate export** — only if the parish later requires Word output
+13. **Calendar Mass Intention quick-create** — expose Mass Intention in `SACRAMENT_SCHEDULE_OPTIONS` (or remove unreachable code)
+14. **Dependency cleanup** — remove unused packages when confirmed unnecessary
+
+---
+
+## 35. Revision History
+
+| Version | Date | Summary |
+|---------|------|---------|
+| 1.0 | 2026-08-04 | Documentation aligned to production-ready Parish Connect v1.0: architecture (Vercel + Firebase), full stack including `react-to-print`, certificate preview/print/PDF workflow, calendar and Mass Intention rules, Firestore/Storage rules detail, consolidated business rules, deployment, testing, known limitations, and future enhancements. Removed outdated certificate popup-print references. |
 
 ---
 
 ## Appendix A — Record numbering conventions
 
 Record numbers are composed from year and sequence and formatted by sacrament-specific helpers in `src/utils/recordNumber.js` (Baptism, Confirmation, Marriage, Death, Conversion, Mass Intention).
+
+Typical prefixes used in the application:
+
+| Module | Prefix pattern (conceptual) |
+|--------|-----------------------------|
+| Baptism | BR |
+| Confirmation | CR |
+| Marriage | MR |
+| Death | DR |
+| Conversion | CVR |
+| Mass Intention | MI-YYYY-NNN style helpers |
 
 - **New records (calendar):** auto-number on save for the current workflow year.
 - **Old records (module pages):** staff-entered year and number with duplicate prevention.
@@ -1208,4 +1523,4 @@ This document must be updated whenever modules, statuses, routes, collections, o
 
 ---
 
-*End of SYSTEM_DOCUMENTATION.md*
+*End of SYSTEM_DOCUMENTATION.md — Parish Connect v1.0*
