@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAllowedImage() {
+      return request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    // Profile photos: owners may read/write only their own files.
+    // Deploy with: firebase deploy --only storage
+    match /profilePhotos/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isAllowedImage();
+      allow delete: if isOwner(userId);
+    }
+  }
+}

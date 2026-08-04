@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasUserDoc() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function normalizedRole() {
+      return hasUserDoc() && userDoc().keys().hasAll(['role'])
+        && userDoc().role is string
+        ? userDoc().role.lower()
+        : '';
+    }
+
+    function isActiveUser() {
+      return hasUserDoc()
+        && (
+          !userDoc().keys().hasAll(['status'])
+          || !(userDoc().status is string)
+          || userDoc().status == ''
+          || userDoc().status.lower() == 'active'
+        );
+    }
+
+    function isAdmin() {
+      return isActiveUser()
+        && normalizedRole() in ['admin', 'administrator'];
+    }
+
+    function isStaffOrAdmin() {
+      return isActiveUser()
+        && normalizedRole() in ['admin', 'administrator', 'staff'];
+    }
+
+    function profileSelfUpdateKeysAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'firstName', 'middleName', 'lastName', 'phone', 'address',
+        'birthday', 'gender', 'photoURL', 'updatedAt', 'updatedBy', 'lastLogin',
+        'lastPasswordChange'
+      ]);
+    }
+
+    // Users may read/update only their own profile document.
+    // Role, email, status, and privilege fields cannot be changed by self-update.
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+        || (
+          isOwner(userId)
+          && profileSelfUpdateKeysAllowed()
+          && (!('role' in request.resource.data)
+            || request.resource.data.role == resource.data.role)
+          && (!('email' in request.resource.data)
+            || request.resource.data.email == resource.data.email)
+          && (!('status' in request.resource.data)
+            || request.resource.data.status == resource.data.status)
+        );
+      allow delete: if false;
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isStaffOrAdmin()
+        && request.resource.data.performedByUid == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'action', 'module', 'performedBy', 'performedByUid', 'timestamp'
+        ]);
+      allow update, delete: if false;
+    }
+
+    // Parish operational collections — staff/admin only (matches UI guards).
+    match /{collection}/{docId} {
+      allow read, write: if isStaffOrAdmin()
+        && collection in [
+          'baptism', 'confirmation', 'marriage', 'death', 'conversion',
+          'massIntentions', 'events', 'ministers', 'reports'
+        ];
+    }
+  }
+}

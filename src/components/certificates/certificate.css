@@ -1,0 +1,493 @@
+@import '../../assets/certificates/fonts/official.css';
+
+/*
+ * Parish Connect — official digital certificate design language
+ * Elegant Catholic · A4 portrait · Navy #123C73 · Gold #C7A13D
+ */
+
+.pc-certificate-page {
+  --cert-navy: #123c73;
+  --cert-gold: #c7a13d;
+  --cert-ink: #1c2434;
+  --cert-muted: #3d4654;
+  --cert-line: #d7c89a;
+  --cert-card: #f7f5f0;
+  --cert-rite: #f3f6fb;
+  --cert-page-w: 210mm;
+  --cert-page-h: 297mm;
+  --cert-pad: 12mm;
+
+  box-sizing: border-box;
+  position: relative;
+  width: var(--cert-page-w);
+  min-height: var(--cert-page-h);
+  margin: 0 auto;
+  padding: var(--cert-pad);
+  background: #ffffff;
+  color: var(--cert-ink);
+  font-family: 'Cormorant Garamond', 'Times New Roman', Times, serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.pc-certificate-page *,
+.pc-certificate-page *::before,
+.pc-certificate-page *::after {
+  box-sizing: border-box;
+}
+
+/* Double-line border: outer navy, inner gold */
+.pc-certificate-frame {
+  position: absolute;
+  inset: 7mm;
+  border: 1.6pt solid var(--cert-navy);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pc-certificate-frame::before {
+  content: '';
+  position: absolute;
+  inset: 2.2mm;
+  border: 0.9pt solid var(--cert-gold);
+}
+
+.pc-certificate-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(var(--cert-page-h) - (var(--cert-pad) * 2));
+  padding: 4mm 6mm 3mm;
+}
+
+/* ---------- Header ---------- */
+
+.pc-certificate-header {
+  display: grid;
+  grid-template-columns: 28mm 1fr 28mm;
+  align-items: center;
+  column-gap: 5mm;
+  margin-bottom: 3mm;
+}
+
+.pc-certificate-logo-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28mm;
+  height: 28mm;
+}
+
+.pc-certificate-logo {
+  width: 26mm;
+  height: 26mm;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.pc-certificate-header-text {
+  text-align: center;
+  line-height: 1.25;
+}
+
+.pc-certificate-diocese {
+  margin: 0;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cert-navy);
+}
+
+.pc-certificate-parish {
+  margin: 2mm 0 0;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cert-navy);
+  line-height: 1.3;
+}
+
+.pc-certificate-address {
+  margin: 1.6mm 0 0;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 12pt;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--cert-muted);
+  letter-spacing: 0.03em;
+}
+
+.pc-certificate-title-rule {
+  height: 0;
+  border: none;
+  border-top: 0.6pt solid var(--cert-gold);
+  width: 42%;
+  margin: 2.5mm auto;
+}
+
+.pc-certificate-title {
+  margin: 0;
+  text-align: center;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cert-navy);
+  line-height: 1.15;
+}
+
+/* ---------- Body ---------- */
+
+.pc-certificate-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding-top: 2mm;
+}
+
+.pc-certificate-lead {
+  margin: 3mm 0 2mm;
+  text-align: center;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 15pt;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--cert-muted);
+  letter-spacing: 0.03em;
+}
+
+.pc-certificate-conjunction {
+  margin: 2mm 0 3mm;
+  text-align: center;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 13pt;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--cert-muted);
+}
+
+.pc-certificate-status-line {
+  margin: 0 0 2mm;
+  text-align: center;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 13pt;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--cert-muted);
+}
+
+/* Focal point — baptized person's full name */
+.pc-certificate-fullname {
+  margin: 0 0 5mm;
+  text-align: center;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 20pt;
+  font-weight: 700;
+  color: var(--cert-navy);
+  letter-spacing: 0.03em;
+  line-height: 1.25;
+  padding: 0 4mm 2.5mm;
+  border-bottom: 1pt solid var(--cert-gold);
+}
+
+.pc-certificate-parentage {
+  text-align: center;
+  margin: 0 0 4mm;
+}
+
+.pc-certificate-parentage-label,
+.pc-certificate-parentage-and {
+  margin: 0;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 13pt;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--cert-muted);
+}
+
+.pc-certificate-parentage-and {
+  margin: 1mm 0;
+}
+
+.pc-certificate-parent-name {
+  margin: 1mm 0 0;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 15pt;
+  font-weight: 700;
+  color: var(--cert-ink);
+  letter-spacing: 0.02em;
+}
+
+.pc-certificate-born {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 2mm 3mm;
+  margin: 0 0 5mm;
+  text-align: center;
+}
+
+.pc-certificate-born-label {
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 13pt;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--cert-muted);
+}
+
+.pc-certificate-born-date {
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 14.5pt;
+  font-weight: 700;
+  color: var(--cert-ink);
+  border-bottom: 0.6pt solid var(--cert-line);
+  padding: 0 2mm 0.8mm;
+  min-width: 55mm;
+  text-align: center;
+}
+
+/* ---------- Baptism rite highlight ---------- */
+
+.pc-certificate-rite {
+  margin: 1mm auto 5mm;
+  max-width: 150mm;
+  text-align: center;
+  padding: 4.5mm 8mm;
+  background: var(--cert-rite);
+  border-top: 1.4pt solid var(--cert-navy);
+  border-bottom: 1.4pt solid var(--cert-navy);
+  box-shadow:
+    inset 0 1.8mm 0 -1.2mm var(--cert-gold),
+    inset 0 -1.8mm 0 -1.2mm var(--cert-gold);
+}
+
+.pc-certificate-rite p {
+  margin: 0;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 11.5pt;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cert-navy);
+  line-height: 1.55;
+}
+
+/* ---------- Baptism details ---------- */
+
+.pc-certificate-details {
+  display: grid;
+  gap: 2.2mm;
+  margin: 0 auto 5mm;
+  max-width: 155mm;
+  width: 100%;
+}
+
+.pc-certificate-meta-row {
+  display: grid;
+  grid-template-columns: 38mm 1fr;
+  align-items: baseline;
+  column-gap: 4mm;
+  padding-bottom: 1.8mm;
+  border-bottom: 0.5pt solid #e8e2d4;
+}
+
+.pc-certificate-meta-label {
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cert-gold);
+}
+
+.pc-certificate-meta-value {
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 13.5pt;
+  font-weight: 600;
+  color: var(--cert-ink);
+  text-align: left;
+  line-height: 1.35;
+}
+
+/* ---------- Record card ---------- */
+
+.pc-certificate-record-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  margin: 0 auto 5mm;
+  max-width: 155mm;
+  width: 100%;
+  background: var(--cert-card);
+  border: 0.7pt solid var(--cert-line);
+  border-radius: 1mm;
+  overflow: hidden;
+}
+
+.pc-certificate-record-item {
+  flex: 1 1 50%;
+  text-align: center;
+  padding: 3.5mm 4mm;
+}
+
+.pc-certificate-record-divider {
+  width: 0;
+  border-left: 0.6pt solid var(--cert-line);
+  margin: 2mm 0;
+}
+
+.pc-certificate-record-label {
+  display: block;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cert-gold);
+  margin-bottom: 1.2mm;
+}
+
+.pc-certificate-record-value {
+  display: block;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 14pt;
+  font-weight: 700;
+  color: var(--cert-navy);
+}
+
+/* ---------- Footer / attestation ---------- */
+
+.pc-certificate-footer {
+  text-align: center;
+  margin: 0 0 4mm;
+}
+
+.pc-certificate-attestation {
+  margin: 0 0 3.5mm;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 11.5pt;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--cert-muted);
+  line-height: 1.45;
+  max-width: 150mm;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pc-certificate-attestation-parish {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--cert-ink);
+}
+
+.pc-certificate-issued {
+  margin: 0;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 13pt;
+  font-weight: 500;
+  color: var(--cert-ink);
+}
+
+.pc-fill {
+  display: inline-block;
+  border-bottom: 0.6pt solid var(--cert-line);
+  text-align: center;
+  font-weight: 700;
+  padding: 0 1.5mm 0.4mm;
+  min-width: 14mm;
+}
+
+.pc-fill.day {
+  min-width: 16mm;
+}
+
+.pc-fill.month {
+  min-width: 32mm;
+}
+
+.pc-fill.year {
+  min-width: 14mm;
+}
+
+/* ---------- Signature ---------- */
+
+.pc-certificate-signature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 3mm;
+  padding-bottom: 1mm;
+}
+
+.pc-certificate-signature-block {
+  width: 72mm;
+  text-align: center;
+}
+
+.pc-certificate-signature-space {
+  height: 16mm;
+}
+
+.pc-certificate-signature-line {
+  border-top: 0.8pt solid var(--cert-navy);
+  margin: 0 4mm;
+}
+
+.pc-certificate-signature-name {
+  margin: 2.5mm 0 0;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cert-navy);
+}
+
+.pc-certificate-signature-blank {
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 12.5pt;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.pc-certificate-signature-role {
+  margin: 1mm 0 0;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 12pt;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--cert-muted);
+}
+
+/* ---------- Print ---------- */
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  .pc-certificate-page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    padding: 12mm;
+    box-shadow: none;
+  }
+
+  .pc-certificate-inner {
+    min-height: calc(297mm - 24mm);
+  }
+}

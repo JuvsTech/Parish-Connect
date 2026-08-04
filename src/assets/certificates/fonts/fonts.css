@@ -1,0 +1,92 @@
+/**
+ * Official certificate fonts copied from the parish DOCX templates /
+ * matching Windows font files.
+ *
+ * DOCX usage:
+ * - Old English Text MT
+ * - Cooper Black
+ * - Century Gothic
+ * - Copperplate Gothic Bold
+ * - Bookman Old Style
+ * - Lucida Calligraphy
+ */
+
+@font-face {
+  font-family: 'Old English Text MT';
+  src: url('./OldEnglishTextMT.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cooper Black';
+  src: url('./CooperBlack.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Century Gothic';
+  src: url('./CenturyGothic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Century Gothic';
+  src: url('./CenturyGothic-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Century Gothic';
+  src: url('./CenturyGothic-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Century Gothic';
+  src: url('./CenturyGothic-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Copperplate Gothic Bold';
+  src: url('./CopperplateGothicBold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bookman Old Style';
+  src: url('./BookmanOldStyle.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bookman Old Style';
+  src: url('./BookmanOldStyle-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Lucida Calligraphy';
+  src: url('./LucidaCalligraphy.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}

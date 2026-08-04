@@ -1,0 +1,70 @@
+:root {
+  --text: #5c6b7a;
+  --text-h: #1a2332;
+  --bg: #f5f7fa;
+  --border: #e4e9f0;
+  --accent: #0b3d91;
+  --accent-bg: rgba(11, 61, 145, 0.08);
+  --accent-border: rgba(11, 61, 145, 0.28);
+  --shadow: 0 4px 16px rgba(11, 61, 145, 0.08);
+
+  --sans: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --heading: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.route-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+  color: var(--text);
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .MuiDrawer-root,
+  .MuiAppBar-root,
+  .MuiToolbar-root,
+  .no-print {
+    display: none !important;
+  }
+
+  .report-print-only {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .parish-report-template {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
