@@ -1,80 +1,26 @@
 /**
- * One-off seed: create two additional admin Auth users + Firestore profiles.
- * Does not modify app auth, RBAC, or security rules.
+ * One-time Admin SDK seed: create two additional admin Auth users + Firestore profiles.
  *
- * Usage (PowerShell):
- *   $env:EXISTING_ADMIN_EMAIL="existing@admin.com"
- *   $env:EXISTING_ADMIN_PASSWORD="..."
+ * Does NOT modify application auth, RBAC, or security rules.
+ * Does NOT modify existing Auth users or existing users/{uid} documents.
+ *
+ * Usage:
  *   node scripts/createAdditionalAdmins.mjs
  *
- * Requires .env with VITE_FIREBASE_* keys.
+ * Prerequisites:
+ *   1. npm install firebase-admin --save-dev
+ *   2. Service account JSON at secrets/firebase-admin.json
+ *      (or GOOGLE_APPLICATION_CREDENTIALS / FIREBASE_SERVICE_ACCOUNT)
  */
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { initializeApp } from 'firebase/app'
-import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-} from 'firebase/firestore'
+import { createRequire } from 'node:module'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = resolve(__dirname, '..')
-
-function loadEnvFile(path) {
-  const env = {}
-  const text = readFileSync(path, 'utf8')
-  for (const line of text.split(/\r?\n/)) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('#')) continue
-    const eq = trimmed.indexOf('=')
-    if (eq === -1) continue
-    const key = trimmed.slice(0, eq).trim()
-    let value = trimmed.slice(eq + 1).trim()
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1)
-    }
-    env[key] = value
-  }
-  return env
-}
-
-const fileEnv = loadEnvFile(resolve(root, '.env'))
-const env = { ...fileEnv, ...process.env }
-
-const firebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.VITE_FIREBASE_APP_ID,
-}
-
-const adminEmail = String(env.EXISTING_ADMIN_EMAIL || '').trim()
-const adminPassword = String(env.EXISTING_ADMIN_PASSWORD || '')
-
-if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-  console.error('Missing VITE_FIREBASE_* values in .env')
-  process.exit(1)
-}
-
-if (!adminEmail || !adminPassword) {
-  console.error(
-    'Set EXISTING_ADMIN_EMAIL and EXISTING_ADMIN_PASSWORD to an existing administrator account.\n' +
-      'That session is required to create users/{uid} documents (Firestore rules: create = admin only).\n' +
-      'The existing admin account itself is not modified.',
-  )
-  process.exit(1)
-}
+const require = createRequire(import.meta.url)
 
 const NEW_USERS = [
   {
@@ -109,122 +55,226 @@ const NEW_USERS = [
   },
 ]
 
-async function createAuthUser(email, password) {
-  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(
-    firebaseConfig.apiKey,
-  )}`
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email,
-      password,
-      returnSecureToken: true,
-    }),
-  })
-  const data = await response.json()
-  if (!response.ok) {
-    const message = data?.error?.message || 'AUTH_CREATE_FAILED'
-    if (message === 'EMAIL_EXISTS') {
-      // Look up localId via sign-in
-      const signInUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(
-        firebaseConfig.apiKey,
-      )}`
-      const signInRes = await fetch(signInUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          returnSecureToken: true,
-        }),
-      })
-      const signInData = await signInRes.json()
-      if (!signInRes.ok) {
-        throw new Error(
-          `Auth user ${email} already exists but password sign-in failed: ${
-            signInData?.error?.message || 'UNKNOWN'
-          }`,
-        )
-      }
-      return { uid: signInData.localId, existed: true }
+function loadEnvFile(path) {
+  if (!existsSync(path)) return {}
+  const env = {}
+  for (const line of readFileSync(path, 'utf8').split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eq = trimmed.indexOf('=')
+    if (eq === -1) continue
+    const key = trimmed.slice(0, eq).trim()
+    let value = trimmed.slice(eq + 1).trim()
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
     }
-    throw new Error(`Failed to create Auth user ${email}: ${message}`)
+    env[key] = value
   }
-  return { uid: data.localId, existed: false }
+  return env
+}
+
+function printAdminSdkSetupHelp(reason) {
+  console.error(`\nFirebase Admin SDK is not configured.\n`)
+  console.error(`Reason: ${reason}\n`)
+  console.error(`Configure it first, then re-run:\n`)
+  console.error(`  node scripts/createAdditionalAdmins.mjs\n`)
+  console.error(`Steps:\n`)
+  console.error(`  1. Install the Admin SDK (dev dependency):`)
+  console.error(`       npm install firebase-admin --save-dev\n`)
+  console.error(`  2. In Firebase Console → Project settings → Service accounts:`)
+  console.error(`       click "Generate new private key" and download the JSON.\n`)
+  console.error(`  3. Save the JSON outside source control, for example:`)
+  console.error(`       ${resolve(root, 'secrets', 'firebase-admin.json')}`)
+  console.error(`     (Do NOT commit this file.)\n`)
+  console.error(`  4. Point the script at that file (PowerShell):`)
+  console.error(
+    `       $env:GOOGLE_APPLICATION_CREDENTIALS="${resolve(root, 'secrets', 'firebase-admin.json')}"`,
+  )
+  console.error(`\n  Alternative file locations (auto-detected if present):`)
+  console.error(`       ./secrets/firebase-admin.json`)
+  console.error(`       ./serviceAccountKey.json\n`)
+}
+
+function resolveServiceAccountPath(env) {
+  const candidates = [
+    env.GOOGLE_APPLICATION_CREDENTIALS,
+    env.FIREBASE_SERVICE_ACCOUNT,
+    env.FIREBASE_ADMIN_CREDENTIALS,
+    resolve(root, 'secrets', 'firebase-admin.json'),
+    resolve(root, 'serviceAccountKey.json'),
+  ]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+
+  for (const candidate of candidates) {
+    const absolute = resolve(candidate)
+    if (existsSync(absolute)) return absolute
+  }
+  return null
+}
+
+function loadAdminModules() {
+  try {
+    const app = require('firebase-admin/app')
+    const auth = require('firebase-admin/auth')
+    const firestore = require('firebase-admin/firestore')
+    return { app, auth, firestore }
+  } catch {
+    return null
+  }
+}
+
+async function findTemplateAdminDoc(db) {
+  const snap = await db
+    .collection('users')
+    .where('role', 'in', ['admin', 'administrator'])
+    .limit(5)
+    .get()
+
+  if (!snap.empty) {
+    const preferred =
+      snap.docs.find(
+        (d) => String(d.data()?.role || '').toLowerCase() === 'admin',
+      ) || snap.docs[0]
+    return { id: preferred.id, data: preferred.data() || {} }
+  }
+
+  const any = await db.collection('users').limit(1).get()
+  if (any.empty) return null
+  return { id: any.docs[0].id, data: any.docs[0].data() || {} }
+}
+
+async function getOrCreateAuthUser(auth, email, password) {
+  try {
+    const existing = await auth.getUserByEmail(email)
+    return { uid: existing.uid, created: false }
+  } catch (error) {
+    if (error?.code !== 'auth/user-not-found') throw error
+  }
+
+  const created = await auth.createUser({
+    email,
+    password,
+    emailVerified: false,
+    disabled: false,
+  })
+  return { uid: created.uid, created: true }
 }
 
 async function main() {
-  const app = initializeApp(firebaseConfig)
-  const auth = getAuth(app)
-  const db = getFirestore(app)
+  const fileEnv = loadEnvFile(resolve(root, '.env'))
+  const env = { ...fileEnv, ...process.env }
 
-  console.log('Signing in as existing administrator (read-only for that account)...')
-  const adminCred = await signInWithEmailAndPassword(
-    auth,
-    adminEmail,
-    adminPassword,
-  )
-  const adminUid = adminCred.user.uid
-  const adminDoc = await getDoc(doc(db, 'users', adminUid))
-  if (!adminDoc.exists()) {
-    throw new Error(
-      `No Firestore users/${adminUid} document for ${adminEmail}. Cannot clone schema.`,
-    )
+  const modules = loadAdminModules()
+  if (!modules) {
+    printAdminSdkSetupHelp('Package "firebase-admin" is not installed.')
+    process.exit(1)
   }
 
-  const adminData = adminDoc.data() || {}
-  const role = String(adminData.role || '').toLowerCase()
-  if (role !== 'admin' && role !== 'administrator') {
-    throw new Error(
-      `${adminEmail} is not an administrator (role=${adminData.role}). Aborting.`,
+  const { initializeApp, getApps, cert } = modules.app
+  const { getAuth } = modules.auth
+  const { getFirestore, FieldValue } = modules.firestore
+
+  const credentialPath = resolveServiceAccountPath(env)
+  if (!credentialPath) {
+    printAdminSdkSetupHelp(
+      'No service account JSON found via GOOGLE_APPLICATION_CREDENTIALS / FIREBASE_SERVICE_ACCOUNT or default paths.',
     )
+    process.exit(1)
   }
 
-  console.log(`Using schema from users/${adminUid}`)
+  let serviceAccount
+  try {
+    serviceAccount = JSON.parse(readFileSync(credentialPath, 'utf8'))
+  } catch (error) {
+    printAdminSdkSetupHelp(
+      `Could not read service account JSON at ${credentialPath}: ${error.message}`,
+    )
+    process.exit(1)
+  }
 
-  const actorEmail = adminCred.user.email || adminEmail
+  if (
+    !serviceAccount.project_id ||
+    !serviceAccount.client_email ||
+    !serviceAccount.private_key
+  ) {
+    printAdminSdkSetupHelp(
+      `Service account JSON at ${credentialPath} is missing project_id / client_email / private_key.`,
+    )
+    process.exit(1)
+  }
+
+  if (!getApps().length) {
+    initializeApp({
+      credential: cert(serviceAccount),
+      projectId: serviceAccount.project_id,
+    })
+  }
+
+  const auth = getAuth()
+  const db = getFirestore()
+
+  console.log(`Using service account: ${serviceAccount.client_email}`)
+  console.log(`Project: ${serviceAccount.project_id}`)
+
+  const template = await findTemplateAdminDoc(db)
+  if (!template) {
+    console.error(
+      '\nNo existing users/{uid} document found to clone schema from.\n' +
+        'Create the primary administrator profile in Firestore first, then re-run this script.',
+    )
+    process.exit(1)
+  }
+
+  console.log(`Cloning document structure from users/${template.id}`)
+  const templateData = { ...template.data }
+  delete templateData.uid
+
+  const now = FieldValue.serverTimestamp()
 
   for (const user of NEW_USERS) {
-    console.log(`\nProvisioning ${user.email}...`)
-    const { uid, existed } = await createAuthUser(user.email, user.password)
-    console.log(
-      existed
-        ? `  Auth user already existed (uid=${uid}); ensuring Firestore profile...`
-        : `  Auth user created (uid=${uid})`,
+    console.log(`\nProcessing ${user.email}...`)
+
+    const { uid, created } = await getOrCreateAuthUser(
+      auth,
+      user.email,
+      user.password,
     )
+    if (created) {
+      console.log(`  Auth user created (uid=${uid})`)
+    } else {
+      console.log(`  Auth user already exists — skipped create (uid=${uid})`)
+    }
 
-    const userRef = doc(db, 'users', uid)
-    const existingProfile = await getDoc(userRef)
+    const userRef = db.collection('users').doc(uid)
+    const existingDoc = await userRef.get()
+    if (existingDoc.exists) {
+      console.log(`  Firestore users/${uid} already exists — skipped write`)
+      continue
+    }
 
-    // Same structure as administrator doc: start from admin keys, overlay identity fields.
-    const base = { ...adminData }
-    delete base.uid
-
-    const next = {
-      ...base,
+    const docData = {
+      ...templateData,
       ...user.profile,
       email: user.email,
       uid,
       displayUserId: uid,
-      createdAt: existingProfile.exists()
-        ? existingProfile.data()?.createdAt ?? serverTimestamp()
-        : serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      updatedBy: actorEmail,
-      lastLogin: existingProfile.exists()
-        ? existingProfile.data()?.lastLogin ?? null
-        : null,
-      lastPasswordChange: existingProfile.exists()
-        ? existingProfile.data()?.lastPasswordChange ?? null
-        : null,
+      role: 'admin',
+      status: user.profile.status || 'active',
+      createdAt: now,
+      updatedAt: now,
+      updatedBy: 'scripts/createAdditionalAdmins.mjs',
+      lastLogin: null,
+      lastPasswordChange: null,
     }
 
-    await setDoc(userRef, next, { merge: true })
-    console.log(`  Firestore users/${uid} written (role=${next.role}, status=${next.status})`)
+    await userRef.set(docData)
+    console.log(`  Firestore users/${uid} created (role=admin)`)
   }
 
-  await signOut(auth)
   console.log('\nDone. Existing administrator account was not modified.')
 }
 
