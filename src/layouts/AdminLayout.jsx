@@ -36,10 +36,13 @@ import HowToRegOutlinedIcon from '@mui/icons-material/HowToRegOutlined'
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined'
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined'
+import AboutDialog from '../components/AboutDialog'
+import AppFooter from '../components/AppFooter'
 import { useAuth } from '../contexts/AuthContext'
 import {
   UnsavedChangesProvider,
@@ -158,6 +161,7 @@ function SidebarContent({
   sacramentalOpen,
   setSacramentalOpen,
   onNavigate,
+  onAbout,
   onLogout,
   onToggleCollapse,
   showCollapseButton,
@@ -314,6 +318,40 @@ function SidebarContent({
       </List>
 
       <Box sx={{ p: 1.25 }}>
+        <Tooltip title={collapsed ? 'About' : ''} placement="right">
+          <ListItemButton
+            onClick={onAbout}
+            sx={{
+              minHeight: 46,
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              px: collapsed ? 1.25 : 1.75,
+              color: 'text.secondary',
+              '&:hover': { bgcolor: 'rgba(11, 61, 145, 0.06)' },
+            }}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: 0,
+                mr: collapsed ? 0 : 1.5,
+                justifyContent: 'center',
+                color: 'text.secondary',
+              }}
+            >
+              <InfoOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            {!collapsed && (
+              <ListItemText
+                primary="About"
+                slotProps={{
+                  primary: {
+                    sx: { fontSize: '0.92rem', fontWeight: 600 },
+                  },
+                }}
+              />
+            )}
+          </ListItemButton>
+        </Tooltip>
+
         <Tooltip title={collapsed ? 'Logout' : ''} placement="right">
           <ListItemButton
             onClick={onLogout}
@@ -404,6 +442,7 @@ function AdminLayoutShell() {
   const [sacramentalOpen, setSacramentalOpen] = useState(true)
   const [anchorEl, setAnchorEl] = useState(null)
   const [logoutError, setLogoutError] = useState('')
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH
   const profileOpen = Boolean(anchorEl)
@@ -451,6 +490,7 @@ function AdminLayoutShell() {
   const sidebarProps = {
     sacramentalOpen,
     setSacramentalOpen,
+    onAbout: () => setAboutOpen(true),
     onLogout: handleLogout,
   }
 
@@ -677,6 +717,8 @@ function AdminLayoutShell() {
           component="main"
           sx={{
             flexGrow: 1,
+            display: 'flex',
+            flexDirection: 'column',
             width: { md: `calc(100% - ${drawerWidth}px)` },
             minWidth: 0,
             bgcolor: 'background.default',
@@ -691,13 +733,17 @@ function AdminLayoutShell() {
           <Box
             component="section"
             sx={{
+              flex: 1,
               p: { xs: 2, sm: 2.5, md: 3 },
-              minHeight: 'calc(100svh - 72px)',
+              minHeight: 0,
             }}
           >
             <Outlet />
           </Box>
+          <AppFooter onAboutClick={() => setAboutOpen(true)} />
         </Box>
+
+        <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
 
         <Snackbar
           open={Boolean(logoutError)}

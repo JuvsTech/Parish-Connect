@@ -20,6 +20,7 @@ import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import InputAdornment from '@mui/material/InputAdornment'
 import { useAuth } from '../contexts/AuthContext'
+import { ABOUT_DEVELOPED_BY } from '../components/AboutDialog'
 import { login } from '../services/authService'
 import logo from '../assets/parish-connect-logo.png'
 
@@ -372,6 +373,37 @@ export default function Login() {
                     'Sign In'
                   )}
                 </Button>
+
+                <Box
+                  sx={{
+                    pt: 1.5,
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: 'block',
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Parish Connect v1.0
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: 'block',
+                      mt: 0.35,
+                      color: 'text.secondary',
+                      fontSize: '0.72rem',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Developed by {ABOUT_DEVELOPED_BY}
+                  </Typography>
+                </Box>
               </Stack>
             </Box>
           </Stack>
