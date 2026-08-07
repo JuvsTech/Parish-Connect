@@ -254,6 +254,7 @@ export default function ReportTemplate({ summary, rows = [] }) {
           }}
         >
           {footer.preparedByLabel}
+
         </Typography>
 
         <Box

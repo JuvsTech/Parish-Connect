@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Box,
@@ -47,6 +47,7 @@ import {
 } from '../services/ministerService'
 import {
   generateSacramentalReport,
+  getReportYears,
   getRecentReports,
   getReportSummaryCounts,
   saveReportMetadata,
@@ -145,11 +146,10 @@ export default function Reports() {
   const { currentUser } = useAuth()
 
   const [reportType, setReportType] = useState('baptism')
-  const [year, setYear] = useState(
-    YEAR_OPTIONS[0] || String(new Date().getFullYear()),
-  )
+  const [year, setYear] = useState('All Years')
+  const [yearOptions, setYearOptions] = useState(['All Years'])
   const [month, setMonth] = useState('All Months')
-  const [minister, setMinister] = useState('')
+  const [minister, setMinister] = useState(null)
 
   const [counts, setCounts] = useState({
     baptism: 0,
@@ -304,6 +304,8 @@ export default function Reports() {
     }
   }, [showSnackbar])
 
+  const reportTypeChangeRef = useRef(true)
+
   useEffect(() => {
     let cancelled = false
     async function loadMinisters() {
@@ -316,23 +318,40 @@ export default function Reports() {
         })
         if (cancelled) return
         setMinisterOptions(list)
-        setMinister((prev) => {
-          if (!prev) return ''
-          const stillValid = list.some(
-            (item) => formatMinisterDisplayName(item) === prev,
-          )
-          return stillValid ? prev : ''
-        })
+        setMinister(null)
       } catch {
         if (!cancelled) {
           setMinisterOptions([])
-          setMinister('')
+          setMinister(null)
         }
       } finally {
         if (!cancelled) setMinistersLoading(false)
       }
     }
+
+    async function loadYears() {
+      try {
+        const options = await getReportYears(reportType)
+        if (cancelled) return
+        setYearOptions(['All Years', ...options])
+      } catch {
+        if (!cancelled) {
+          setYearOptions(['All Years', ...YEAR_OPTIONS])
+        }
+      }
+    }
+
+    if (reportTypeChangeRef.current) {
+      reportTypeChangeRef.current = false
+    } else {
+      setYear('All Years')
+      setMonth('All Months')
+      setMinister(null)
+    }
+
     loadMinisters()
+    loadYears()
+
     return () => {
       cancelled = true
     }
@@ -349,7 +368,7 @@ export default function Reports() {
       reportType,
       year,
       month,
-      minister,
+      minister: minister === 'All Ministers' ? '' : minister,
       generatedBy: generatedByLabel,
     }
 
@@ -364,10 +383,9 @@ export default function Reports() {
         setYear(String(overrideFilters.year))
         setMonth(overrideFilters.month || 'All Months')
         setMinister(
-          overrideFilters.minister &&
-            overrideFilters.minister !== 'All Ministers'
-            ? overrideFilters.minister
-            : '',
+          overrideFilters.minister === 'All Ministers'
+            ? 'All Ministers'
+            : overrideFilters.minister || null,
         )
       }
 
@@ -415,9 +433,9 @@ export default function Reports() {
       year: filters.year,
       month: filters.month || 'All Months',
       minister:
-        filters.minister && filters.minister !== 'All Ministers'
-          ? filters.minister
-          : '',
+        filters.minister === 'All Ministers'
+          ? 'All Ministers'
+          : filters.minister || '',
       generatedBy: generatedByLabel,
     })
   }
@@ -510,7 +528,7 @@ export default function Reports() {
                   onChange={(event) => setYear(event.target.value)}
                   disabled={generating}
                 >
-                  {YEAR_OPTIONS.map((option) => (
+                  {yearOptions.map((option) => (
                     <MenuItem key={option} value={option}>
                       {option}
                     </MenuItem>
@@ -546,7 +564,7 @@ export default function Reports() {
                   onChange={(event) => setMinister(event.target.value)}
                   disabled={generating || ministersLoading}
                 >
-                  <MenuItem value="">All Ministers</MenuItem>
+                  <MenuItem value="All Ministers">All Ministers</MenuItem>
                   {ministerOptions.map((item) => {
                     const label = formatMinisterDisplayName(item)
                     return (

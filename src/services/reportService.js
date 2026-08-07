@@ -67,6 +67,30 @@ function compareSacramentThenRecord(a, b) {
   return (a.recordNumberSort || 0) - (b.recordNumberSort || 0)
 }
 
+export async function getReportYears(reportType) {
+  const value = String(reportType || '').trim()
+  const config = REPORT_TYPE_OPTIONS.find((item) => item.value === value)
+  if (!config) return []
+
+  try {
+    const collectionRef = collection(db, config.collection)
+    const snapshot = await getDocs(query(collectionRef, orderBy('recordYear', 'desc')))
+    const years = new Set()
+
+    snapshot.docs.forEach((docSnap) => {
+      const yearValue = docSnap.data()?.recordYear
+      const normalized = Number(yearValue)
+      if (Number.isInteger(normalized) && normalized >= 1000) {
+        years.add(String(normalized))
+      }
+    })
+
+    return Array.from(years).sort((a, b) => Number(b) - Number(a))
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(MESSAGES.ERROR.REPORT_GENERATE)
+  }
+}
+
 /**
  * All-time sacramental totals for Reports summary cards.
  * Independent of report filters.
@@ -89,11 +113,13 @@ export async function getReportSummaryCounts() {
  */
 export async function generateSacramentalReport(filters = {}) {
   const reportType = String(filters.reportType || '').trim()
-  const year = Number(filters.year)
+  const year = String(filters.year || '').trim()
   const monthLabel = filters.month || 'All Months'
   const minister = String(filters.minister || '').trim()
+  const isAllYears = year === 'All Years'
+  const reportYear = Number(year)
 
-  if (!reportType || !Number.isInteger(year) || year < 1000) {
+  if (!reportType || (!isAllYears && (!Number.isInteger(reportYear) || reportYear < 1000))) {
     throw new Error(MESSAGES.ERROR.REPORT_REQUIRED_FILTERS)
   }
 
@@ -106,9 +132,10 @@ export async function generateSacramentalReport(filters = {}) {
 
   try {
     const collectionRef = collection(db, config.collection)
-    // Single-field equality — no composite index required.
     const snapshot = await getDocs(
-      query(collectionRef, where('recordYear', '==', year)),
+      isAllYears
+        ? query(collectionRef)
+        : query(collectionRef, where('recordYear', '==', reportYear)),
     )
 
     const rows = snapshot.docs
@@ -134,7 +161,7 @@ export async function generateSacramentalReport(filters = {}) {
       reportTitle: config.title,
       reportType: config.label,
       reportTypeValue: config.value,
-      year: String(year),
+      year: year || 'All Years',
       month: monthIndex == null ? 'All Months' : monthLabel,
       minister: minister || 'All Ministers',
       generatedBy: String(filters.generatedBy || 'Administrator').trim(),
