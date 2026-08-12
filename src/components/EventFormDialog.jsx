@@ -32,7 +32,8 @@ const INITIAL_FORM = {
   titleOption: '',
   customTitle: '',
   date: '',
-  time: '',
+  startTime: '',
+  endTime: '',
   description: '',
 }
 
@@ -76,7 +77,8 @@ function eventToForm(event) {
     titleOption,
     customTitle,
     date: event.dateKey || (event.date ? toDateKey(event.date) : ''),
-    time: event.time || '',
+    startTime: event.startTime || event.time || '',
+    endTime: event.endTime || '',
     description: event.description || '',
   }
 }
@@ -97,8 +99,15 @@ function validateEventForm(form) {
   if (!form.date) {
     errors.date = MESSAGES.ERROR.EVENT_REQUIRED_FIELDS
   }
-  if (!form.time) {
-    errors.time = MESSAGES.ERROR.EVENT_REQUIRED_FIELDS
+  if (!form.startTime) {
+    errors.startTime = MESSAGES.ERROR.EVENT_REQUIRED_FIELDS
+  }
+  if (!form.endTime) {
+    errors.endTime = MESSAGES.ERROR.EVENT_END_TIME_REQUIRED
+  }
+
+  if (form.startTime && form.endTime && form.endTime <= form.startTime) {
+    errors.endTime = MESSAGES.ERROR.EVENT_END_TIME_INVALID
   }
 
   return errors
@@ -115,7 +124,8 @@ function resolveSavePayload(form) {
     title,
     category: titleOption,
     date: form.date,
-    time: form.time,
+    startTime: form.startTime,
+    endTime: form.endTime,
     description: String(form.description || '').trim(),
   }
 }
@@ -391,12 +401,29 @@ export default function EventFormDialog({
 
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
-                label="Time"
+                label="Start Time"
                 type="time"
-                value={form.time}
-                onChange={handleChange('time')}
-                error={showError('time')}
-                helperText={showError('time') ? errors.time : ' '}
+                value={form.startTime}
+                onChange={handleChange('startTime')}
+                error={showError('startTime')}
+                helperText={showError('startTime') ? errors.startTime : ' '}
+                fullWidth
+                required
+                disabled={saving || isLocked}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="End Time"
+                type="time"
+                value={form.endTime}
+                onChange={handleChange('endTime')}
+                error={showError('endTime')}
+                helperText={showError('endTime') ? errors.endTime : ' '}
                 fullWidth
                 required
                 disabled={saving || isLocked}

@@ -364,6 +364,11 @@ export default function Reports() {
       return
     }
 
+    if (!overrideFilters && minister === null) {
+      showSnackbar('Please select a minister to generate a report.', 'error')
+      return
+    }
+
     const filters = overrideFilters || {
       reportType,
       year,
@@ -430,7 +435,7 @@ export default function Reports() {
     }
     await handleGenerateReport({
       reportType: filters.reportType,
-      year: filters.year,
+      year: filters.year, 
       month: filters.month || 'All Months',
       minister:
         filters.minister === 'All Ministers'
@@ -555,7 +560,7 @@ export default function Reports() {
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <FormControl fullWidth size="small">
+              <FormControl fullWidth size="small" required>
                 <InputLabel id="report-minister-label">Minister</InputLabel>
                 <Select
                   labelId="report-minister-label"
@@ -563,6 +568,7 @@ export default function Reports() {
                   value={minister}
                   onChange={(event) => setMinister(event.target.value)}
                   disabled={generating || ministersLoading}
+                  error={false}
                 >
                   <MenuItem value="All Ministers">All Ministers</MenuItem>
                   {ministerOptions.map((item) => {

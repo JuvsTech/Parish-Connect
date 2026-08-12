@@ -20,7 +20,11 @@ import {
   isManualEvent,
 } from '../constants'
 import { toLocalDate } from '../utils/date'
-import { toDateKey } from '../utils/parishCalendar'
+import {
+  formatEventConflictMessage,
+  timesOverlap,
+  toDateKey,
+} from '../utils/parishCalendar'
 
 export const eventsCollectionRef = collection(db, COLLECTIONS.EVENTS)
 
@@ -29,6 +33,8 @@ export const EVENT_FIELDS = {
   CATEGORY: 'category',
   DATE: 'date',
   TIME: 'time',
+  START_TIME: 'startTime',
+  END_TIME: 'endTime',
   DESCRIPTION: 'description',
   SOURCE: 'source',
   RELATED_RECORD_ID: 'relatedRecordId',
@@ -71,6 +77,11 @@ function normalizeTimeValue(value) {
  */
 export function mapEventDocToUi(docData = {}) {
   const date = normalizeDateValue(docData.date)
+  const startTime = docData.startTime
+    ? normalizeTimeValue(docData.startTime)
+    : ''
+  const endTime = docData.endTime ? normalizeTimeValue(docData.endTime) : ''
+  const legacyTime = normalizeTimeValue(docData.time)
 
   return {
     id: docData.id,
@@ -78,7 +89,9 @@ export function mapEventDocToUi(docData = {}) {
     category: normalizeText(docData.category),
     date,
     dateKey: date ? toDateKey(date) : '',
-    time: normalizeTimeValue(docData.time),
+    startTime,
+    endTime,
+    time: startTime || legacyTime,
     description: normalizeText(docData.description),
     source: normalizeText(docData.source) || EVENT_SOURCES.MANUAL,
     relatedRecordId: docData.relatedRecordId ?? null,
@@ -95,19 +108,51 @@ function validateManualEventPayload(data) {
   const title = normalizeText(data.title)
   const category = normalizeText(data.category)
   const date = normalizeDateValue(data.date)
-  const time = normalizeText(data.time)
+  const startTime = normalizeText(data.startTime)
+  const endTime = normalizeText(data.endTime)
 
-  if (!title || !category || !date || !time) {
+  if (!title || !category || !date || !startTime || !endTime) {
     throw new Error(MESSAGES.ERROR.EVENT_REQUIRED_FIELDS)
+  }
+
+  if (!isValidTimeRange(startTime, endTime)) {
+    throw new Error(MESSAGES.ERROR.EVENT_END_TIME_INVALID)
   }
 }
 
+function isValidTimeRange(startTime, endTime) {
+  const start = parseTimeMinutes(startTime)
+  const end = parseTimeMinutes(endTime)
+  if (start < 0 || end < 0) return false
+  return end > start
+}
+
+function parseTimeMinutes(time24) {
+  const raw = normalizeText(time24)
+  if (!raw) return -1
+  const match = raw.match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return -1
+  return Number(match[1]) * 60 + Number(match[2])
+}
+
+function isEventConflictError(error) {
+  return (
+    error instanceof Error &&
+    error.message.startsWith("This event overlaps with '")
+  )
+}
+
 function buildEventDocument(data = {}) {
+  const startTime = normalizeText(data.startTime)
+  const endTime = normalizeText(data.endTime)
+
   return {
     title: normalizeText(data.title),
     category: normalizeText(data.category),
     date: normalizeDateValue(data.date),
-    time: normalizeTimeValue(data.time),
+    startTime,
+    endTime,
+    time: startTime || normalizeTimeValue(data.time),
     description: normalizeText(data.description),
     source: normalizeText(data.source) || EVENT_SOURCES.MANUAL,
     relatedRecordId: data.relatedRecordId ?? null,
@@ -137,7 +182,9 @@ export async function getEvents() {
       .sort((a, b) => {
         const byDate = String(a.dateKey).localeCompare(String(b.dateKey))
         if (byDate !== 0) return byDate
-        return String(a.time).localeCompare(String(b.time))
+        return String(a.startTime || a.time).localeCompare(
+          String(b.startTime || b.time),
+        )
       })
   } catch (error) {
     const message =
@@ -161,7 +208,44 @@ export async function getEventsByDate(date) {
 
   return events
     .filter((event) => event.dateKey === key)
-    .sort((a, b) => String(a.time).localeCompare(String(b.time)))
+    .sort((a, b) =>
+      String(a.startTime || a.time).localeCompare(String(b.startTime || b.time)),
+    )
+}
+
+/**
+ * Finds an existing manual event that overlaps the requested time range.
+ * Sacramental records are intentionally excluded.
+ *
+ * @param {object} params
+ * @param {Date|string} params.date
+ * @param {string} params.startTime
+ * @param {string} params.endTime
+ * @param {string} [params.excludeId]
+ * @returns {Promise<object|null>}
+ */
+async function findOverlappingManualEvent({
+  date,
+  startTime,
+  endTime,
+  excludeId,
+}) {
+  const eventDate = normalizeDateValue(date)
+  if (!eventDate || !startTime || !endTime) return null
+
+  const events = await getEventsByDate(eventDate)
+
+  return events.find((event) => {
+    if (!isManualEvent(event)) return false
+    if (excludeId && event.id === excludeId) return false
+
+    return timesOverlap(
+      startTime,
+      endTime,
+      event.startTime,
+      event.endTime,
+    )
+  })
 }
 
 /**
@@ -173,6 +257,15 @@ export async function getEventsByDate(date) {
 export async function createEvent(data) {
   try {
     validateManualEventPayload(data)
+
+    const overlap = await findOverlappingManualEvent({
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+    })
+    if (overlap) {
+      throw new Error(formatEventConflictMessage(overlap))
+    }
 
     const payload = {
       ...buildEventDocument({
@@ -195,7 +288,9 @@ export async function createEvent(data) {
   } catch (error) {
     if (
       error instanceof Error &&
-      error.message === MESSAGES.ERROR.EVENT_REQUIRED_FIELDS
+      (error.message === MESSAGES.ERROR.EVENT_REQUIRED_FIELDS ||
+        error.message === MESSAGES.ERROR.EVENT_END_TIME_INVALID ||
+        isEventConflictError(error))
     ) {
       throw error
     }
@@ -221,6 +316,16 @@ export async function updateEvent(id, data) {
 
     validateManualEventPayload(data)
 
+    const overlap = await findOverlappingManualEvent({
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      excludeId: id,
+    })
+    if (overlap) {
+      throw new Error(formatEventConflictMessage(overlap))
+    }
+
     const payload = {
       ...buildEventDocument({
         ...data,
@@ -242,7 +347,9 @@ export async function updateEvent(id, data) {
     if (
       error instanceof Error &&
       (error.message === MESSAGES.ERROR.EVENT_REQUIRED_FIELDS ||
-        error.message.includes('id is required'))
+        error.message === MESSAGES.ERROR.EVENT_END_TIME_INVALID ||
+        error.message.includes('id is required') ||
+        isEventConflictError(error))
     ) {
       throw error
     }

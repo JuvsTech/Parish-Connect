@@ -68,6 +68,70 @@ export function formatScheduleTime(time24) {
   return `${String(hours).padStart(2, '0')}:${minutes} ${period}`
 }
 
+/**
+ * Converts a 24h "HH:mm" string to minutes since midnight.
+ *
+ * @param {string} time24
+ * @returns {number}
+ */
+export function parseTimeMinutes(time24) {
+  if (!time24) return -1
+  const [hoursRaw, minutesRaw] = String(time24).split(':')
+  const hours = Number(hoursRaw)
+  const minutes = Number(minutesRaw)
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return -1
+  return hours * 60 + minutes
+}
+
+/**
+ * True when two time intervals [aStart, aEnd) and [bStart, bEnd) overlap.
+ * Intervals that only touch at a boundary are NOT considered overlapping.
+ *
+ * @param {string} aStart
+ * @param {string} aEnd
+ * @param {string} bStart
+ * @param {string} bEnd
+ * @returns {boolean}
+ */
+export function timesOverlap(aStart, aEnd, bStart, bEnd) {
+  const a0 = parseTimeMinutes(aStart)
+  const a1 = parseTimeMinutes(aEnd)
+  const b0 = parseTimeMinutes(bStart)
+  const b1 = parseTimeMinutes(bEnd)
+  if ([a0, a1, b0, b1].some((value) => value < 0)) return false
+  return a0 < b1 && b0 < a1
+}
+
+/**
+ * Formats a start/end time range, e.g. "9:00 AM – 11:00 AM".
+ *
+ * @param {string} startTime
+ * @param {string} endTime
+ * @returns {string}
+ */
+export function formatEventTimeRange(startTime, endTime) {
+  const start = formatScheduleTime(startTime)
+  const end = formatScheduleTime(endTime)
+  if (!start && !end) return ''
+  if (!end) return start
+  if (!start) return end
+  return `${start} – ${end}`
+}
+
+/**
+ * Formats a calendar event's time display, preferring its duration range
+ * when available and falling back to the legacy single time field.
+ *
+ * @param {object} event
+ * @returns {string}
+ */
+export function formatEventDateTimeRange(event) {
+  if (event?.startTime && event?.endTime) {
+    return formatEventTimeRange(event.startTime, event.endTime)
+  }
+  return formatScheduleTime(event?.time)
+}
+
 export function getEventDateKey(event) {
   if (event?.dateKey) {
     const key = String(event.dateKey).trim().slice(0, 10)
@@ -107,7 +171,7 @@ export function isPastEvent(event, now = new Date()) {
 }
 
 export function getEventTime(event) {
-  return String(event?.time || event?.startTime || '').trim()
+  return String(event?.startTime || event?.time || '').trim()
 }
 
 export function getEventsForDate(events, date) {
@@ -137,6 +201,26 @@ export function getUpcomingEvents(events, fromDate, limit = 4) {
       return getEventTime(a).localeCompare(getEventTime(b))
     })
     .slice(0, limit)
+}
+
+/**
+ * Builds a user-friendly schedule conflict message.
+ *
+ * @param {object} overlappingEvent
+ * @returns {string}
+ */
+export function formatEventConflictMessage(overlappingEvent) {
+  const title = overlappingEvent?.title || 'another event'
+  const timeRange = formatEventDateTimeRange(overlappingEvent) || 'the selected time'
+  const dateText = overlappingEvent?.date
+    ? overlappingEvent.date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : 'this date'
+
+  return `This event overlaps with '${title}' scheduled from ${timeRange} on ${dateText}. Please choose another time.`
 }
 
 export function getCalendarCells(viewDate) {

@@ -83,6 +83,8 @@ export const MESSAGES = {
     EVENT_DELETE: 'Unable to delete event.',
     EVENT_REQUIRED_FIELDS: 'Please fill in all required event fields.',
     EVENT_CUSTOM_TITLE_REQUIRED: 'Please enter a custom event title.',
+    EVENT_END_TIME_REQUIRED: 'End time is required.',
+    EVENT_END_TIME_INVALID: 'End time must be later than start time.',
     EVENT_SACRAMENTAL_LOCKED:
       'This event is linked to a sacramental record. Please edit the original record instead.',
     EVENT_PAST_LOCKED: 'Past events can no longer be modified.',
