@@ -1,16 +1,145 @@
-# React + Vite
+# Parish Connect
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+**Church Records Management System**
 
-Currently, two official plugins are available:
+Parish Connect is a web-based system developed for the **Immaculate Conception of the Virgin Mary Parish (ICVMP), Bani, Pangasinan**.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The system was created to help the parish office organize, manage, and easily retrieve sacramental records and other parish information in one place.
 
-## React Compiler
+## Website
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+🌐 https://parish-connect-sigma.vercel.app/
 
-## Expanding the Oxlint configuration
+## Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### Dashboard
+
+* Parish calendar
+* Upcoming schedules and events
+* Overview of parish records
+
+### Sacramental Records
+
+* Baptismal Records
+* Confirmation Records
+* Marriage Records
+* Death Records
+* Conversion Records
+* Search and filter records
+* View and edit records
+* Requirements checklist
+* Certificate generation
+
+### Mass Intentions
+
+* Add and manage Mass intentions
+* Schedule intentions
+* Update intention status
+* View completed and cancelled intentions
+
+### Manage Ministers
+
+* Add and manage parish ministers
+* Update minister information and status
+
+### Reports
+
+* Generate reports from parish records
+* Preview reports
+* Export and print reports
+
+### Profile
+
+* Manage personal information
+* Change password
+* View account information
+
+## Technologies Used
+
+* React
+* Vite
+* JavaScript
+* Material UI
+* Firebase
+* Firebase Authentication
+* Cloud Firestore
+* Firebase Storage
+
+## Purpose
+
+Parish Connect aims to provide the parish office with a more organized and convenient way of managing sacramental records and parish schedules.
+
+The system helps reduce the difficulty of manually searching through physical records and provides easier access to important parish information.
+
+# Parish Connect
+
+**Church Records Management System**
+
+Parish Connect is a web-based system developed for the **Immaculate Conception of the Virgin Mary Parish (ICVMP), Bani, Pangasinan**.
+
+The system was created to help the parish office organize, manage, and easily retrieve sacramental records and other parish information in one place.
+
+## Website
+
+🌐 https://parish-connect-sigma.vercel.app/
+
+## Features
+
+### Dashboard
+
+* Parish calendar
+* Upcoming schedules and events
+* Overview of parish records
+
+### Sacramental Records
+
+* Baptismal Records
+* Confirmation Records
+* Marriage Records
+* Death Records
+* Conversion Records
+* Search and filter records
+* View and edit records
+* Requirements checklist
+* Certificate generation
+
+### Mass Intentions
+
+* Add and manage Mass intentions
+* Schedule intentions
+* Update intention status
+* View completed and cancelled intentions
+
+### Manage Ministers
+
+* Add and manage parish ministers
+* Update minister information and status
+
+### Reports
+
+* Generate reports from parish records
+* Preview reports
+* Export and print reports
+
+### Profile
+
+* Manage personal information
+* Change password
+* View account information
+
+## Technologies Used
+
+* React
+* Vite
+* JavaScript
+* Material UI
+* Firebase
+* Firebase Authentication
+* Cloud Firestore
+* Firebase Storage
+
+## Purpose
+
+Parish Connect aims to provide the parish office with a more organized and convenient way of managing sacramental records and parish schedules.
+
+The system helps reduce the difficulty of manually searching through physical records and provides easier access to important parish information.
