@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -21,7 +22,7 @@ import {
   getRequirementsSummary,
   normalizeSacramentRequirements,
 } from '../constants/sacramentRequirements'
-import { syncSacramentalEvent } from './eventService'
+import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for conversion documents.
@@ -92,6 +93,13 @@ export const CONVERSION_FIELDS = {
   UPDATED_AT: 'updatedAt',
   CREATED_BY: 'createdBy',
   UPDATED_BY: 'updatedBy',
+}
+
+export async function deleteConversionRecord(id) {
+  if (!id) throw new Error(MESSAGES.ERROR.CONVERSION_UPDATE)
+  await deleteDoc(doc(db, COLLECTIONS.CONVERSION, id))
+  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.CONVERSION) } catch (error) { console.error('Failed to delete linked conversion event:', error) }
+  return true
 }
 
 const REQUIRED_FIELDS = [

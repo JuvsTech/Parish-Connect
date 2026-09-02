@@ -1,7 +1,6 @@
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import {
-  CERTIFICATE_CONFIRMATION_PARISH_CHURCH,
   CERTIFICATE_DIOCESE,
   CERTIFICATE_IMPLEMENTED,
   CERTIFICATE_PARISH_ADDRESS,
@@ -207,7 +206,8 @@ export function mapConfirmationRecordToCertificate(record, options = {}) {
   return {
     type: CERTIFICATE_TYPES.CONFIRMATION,
     ...sharedChrome(CERTIFICATE_TITLES.confirmation),
-    confirmationParishChurch: CERTIFICATE_CONFIRMATION_PARISH_CHURCH,
+    confirmationParishChurch: CERTIFICATE_PARISH_NAME,
+    recordParishName: CERTIFICATE_PARISH_NAME,
     recordId: record.id || '',
     recordNumber: blank(
       formatConfirmationRecordNumber(record.recordYear, record.recordNumber),
@@ -234,10 +234,8 @@ export function mapConfirmationRecordToCertificate(record, options = {}) {
     detailRows: [
       { label: 'Confirmation Date', value: confirmationPhrase || '—' },
       {
-        label: 'Priest',
-        value: ministerName
-          ? `Reverend Father ${ministerName}`
-          : 'Reverend Father —',
+        label: 'Minister',
+        value: ministerName || '—',
       },
       {
         label: 'Sponsors',
@@ -245,7 +243,7 @@ export function mapConfirmationRecordToCertificate(record, options = {}) {
       },
       {
         label: 'Parish Church',
-        value: CERTIFICATE_CONFIRMATION_PARISH_CHURCH || '—',
+        value: CERTIFICATE_PARISH_NAME,
       },
     ],
     attestationPrefix:

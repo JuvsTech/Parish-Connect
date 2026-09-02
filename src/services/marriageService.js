@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -26,7 +27,7 @@ import { getNextMarriageRecordParts } from '../utils/recordNumber'
 import { toProperCase } from '../utils/textFormatter'
 import { normalizePlace } from '../utils/philippinePlaces'
 import { createAuditLog } from './auditLogService'
-import { syncSacramentalEvent } from './eventService'
+import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for marriage documents.
@@ -396,7 +397,7 @@ function buildMarriageEventPayload(recordId, record) {
         : bride !== '—'
           ? bride
           : 'Marriage'
-  const time = normalizeTimeValue(record.time) || '08:00'
+  const time = normalizeTimeValue(record.time)
 
   return {
     source: EVENT_SOURCES.MARRIAGE,
@@ -520,6 +521,9 @@ export async function updateMarriageRecord(id, data, options = {}) {
       throw new Error(MESSAGES.ERROR.MARRIAGE_UPDATE)
     }
 
+    const currentSnapshot = await getDoc(doc(db, COLLECTIONS.MARRIAGE, id))
+    const currentData = currentSnapshot.exists() ? currentSnapshot.data() : {}
+
     const normalized = normalizeIncomingPayload(data)
     validateMarriagePayload(normalized)
 
@@ -547,12 +551,13 @@ export async function updateMarriageRecord(id, data, options = {}) {
     }
 
     delete payload.createdBy
+    delete payload.time
 
     const docRef = doc(db, COLLECTIONS.MARRIAGE, id)
     await updateDoc(docRef, payload)
 
     try {
-      await syncSacramentalEvent(buildMarriageEventPayload(id, payload))
+      await syncSacramentalEvent(buildMarriageEventPayload(id, { ...payload, time: currentData.time }))
     } catch (syncError) {
       console.error('Failed to sync marriage calendar event:', syncError)
     }
@@ -562,6 +567,7 @@ export async function updateMarriageRecord(id, data, options = {}) {
     return mapMarriageDocToUi({
       id,
       ...payload,
+      time: currentData.time,
     })
   } catch (error) {
     if (isFriendlyMarriageError(error)) {
@@ -577,4 +583,11 @@ export async function updateMarriageRecord(id, data, options = {}) {
 
     throw new Error(MESSAGES.ERROR.MARRIAGE_UPDATE)
   }
+}
+
+export async function deleteMarriageRecord(id) {
+  if (!id) throw new Error(MESSAGES.ERROR.MARRIAGE_UPDATE)
+  await deleteDoc(doc(db, COLLECTIONS.MARRIAGE, id))
+  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.MARRIAGE) } catch (error) { console.error('Failed to delete linked marriage event:', error) }
+  return true
 }

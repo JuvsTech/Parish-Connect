@@ -31,6 +31,7 @@ import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined'
 import { MARIAN_BLUE } from '../theme/parishTheme'
@@ -38,6 +39,7 @@ import { MESSAGES } from '../constants'
 import { getRequirementsSummary } from '../constants/sacramentRequirements'
 import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
+import PasswordVerificationDialog from '../components/PasswordVerificationDialog'
 import {
   DetailField,
   DetailSection,
@@ -50,6 +52,7 @@ import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
 import {
   createMarriageRecord,
+  deleteMarriageRecord,
   getMarriageRecords,
   updateMarriageRecord,
 } from '../services/marriageService'
@@ -455,6 +458,8 @@ export default function MarriageRecords() {
   const [viewOpen, setViewOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState('add')
+  const [editVerificationOpen, setEditVerificationOpen] = useState(false)
+  const [deleteVerificationOpen, setDeleteVerificationOpen] = useState(false)
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -636,9 +641,22 @@ export default function MarriageRecords() {
 
   function handleOpenEdit(record) {
     setSelectedRecord(record)
+    setEditVerificationOpen(true)
+  }
+
+  function handleCancelEditVerification() {
+    setEditVerificationOpen(false)
+    setSelectedRecord(null)
+  }
+
+  function handleEditVerified() {
+    setEditVerificationOpen(false)
     setFormMode('edit')
     setFormOpen(true)
   }
+  function handleOpenDelete(record) { setSelectedRecord(record); setDeleteVerificationOpen(true) }
+  function handleCancelDeleteVerification() { if (!saving) { setDeleteVerificationOpen(false); setSelectedRecord(null) } }
+  async function handleDeleteVerified() { setSaving(true); try { await deleteMarriageRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Marriage record deleted successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to delete marriage record.', 'error') } finally { setSaving(false) } }
 
   function handleCloseForm() {
     if (saving) return
@@ -1046,6 +1064,7 @@ export default function MarriageRecords() {
                             <VisibilityOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Delete"><IconButton size="small" aria-label="Delete marriage record" onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
@@ -1102,6 +1121,16 @@ export default function MarriageRecords() {
           />
         </Suspense>
       ) : null}
+
+      <PasswordVerificationDialog
+        open={editVerificationOpen}
+        title="Verify Password to Edit"
+        description="Enter your current password to edit this marriage record."
+        confirmLabel="Verify and Edit"
+        onClose={handleCancelEditVerification}
+        onVerified={handleEditVerified}
+      />
+      <PasswordVerificationDialog open={deleteVerificationOpen} title="Delete Marriage Record" description="Permanently delete this marriage record and its linked schedule event? Enter your current password to confirm." confirmLabel="Verify and Delete" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
 
       <Snackbar
         open={snackbar.open}

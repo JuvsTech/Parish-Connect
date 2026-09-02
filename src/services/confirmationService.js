@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -27,7 +28,7 @@ import {
   normalizeSacramentRequirements,
 } from '../constants/sacramentRequirements'
 import { normalizeGender } from '../constants/gender'
-import { syncSacramentalEvent } from './eventService'
+import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for confirmation documents.
@@ -121,7 +122,6 @@ const REQUIRED_FIELDS = [
   CONFIRMATION_FIELDS.CONFIRMAND_FIRST_NAME,
   CONFIRMATION_FIELDS.CONFIRMAND_LAST_NAME,
   CONFIRMATION_FIELDS.GENDER,
-  CONFIRMATION_FIELDS.DATE_OF_BIRTH,
   CONFIRMATION_FIELDS.AGE,
   CONFIRMATION_FIELDS.PLACE_OF_BAPTISM,
   CONFIRMATION_FIELDS.FATHER_FIRST_NAME,
@@ -215,15 +215,10 @@ function validateConfirmationPayload(data) {
     )
   }
 
-  const dateOfBirth = normalizeDateValue(data.dateOfBirth)
   const confirmationDate = normalizeDateValue(data.confirmationDate)
 
-  if (!dateOfBirth || !confirmationDate) {
+  if (!confirmationDate) {
     throw new Error(MESSAGES.ERROR.CONFIRMATION_REQUIRED_FIELDS)
-  }
-
-  if (dateOfBirth > confirmationDate) {
-    throw new Error('Birth date cannot be after confirmation date.')
   }
 }
 
@@ -239,6 +234,9 @@ export function buildConfirmationDocument(data = {}) {
   return {
     recordNumber: Number(normalized.recordNumber),
     recordYear: Number(normalized.recordYear),
+    bookNumber: normalizeText(normalized.bookNumber).toUpperCase(),
+    lineNumber: Number.isInteger(Number(normalized.lineNumber)) && Number(normalized.lineNumber) > 0 ? Number(normalized.lineNumber) : null,
+    pageNumber: Number.isInteger(Number(normalized.pageNumber)) && Number(normalized.pageNumber) > 0 ? Number(normalized.pageNumber) : null,
     recordType: normalizeRecordType(normalized.recordType),
     confirmandFirstName: toProperCase(normalized.confirmandFirstName),
     confirmandMiddleName: toProperCase(normalized.confirmandMiddleName),
@@ -250,6 +248,8 @@ export function buildConfirmationDocument(data = {}) {
     placeOfBaptism: normalizeText(
       normalized.placeOfBaptism || normalized.placeOfBirth,
     ),
+    baptismParishName: normalizeText(normalized.baptismParishName),
+    parentsResidence: normalizeText(normalized.parentsResidence),
     fatherFirstName: toProperCase(normalized.fatherFirstName),
     fatherMiddleName: toProperCase(normalized.fatherMiddleName),
     fatherLastName: toProperCase(normalized.fatherLastName),
@@ -262,10 +262,12 @@ export function buildConfirmationDocument(data = {}) {
     maleSponsorMiddleName: toProperCase(normalized.maleSponsorMiddleName),
     maleSponsorLastName: toProperCase(normalized.maleSponsorLastName),
     maleSponsorSuffix: toProperCase(normalized.maleSponsorSuffix),
+    maleSponsorResidence: normalizeText(normalized.maleSponsorResidence),
     femaleSponsorFirstName: toProperCase(normalized.femaleSponsorFirstName),
     femaleSponsorMiddleName: toProperCase(normalized.femaleSponsorMiddleName),
     femaleSponsorLastName: toProperCase(normalized.femaleSponsorLastName),
     femaleSponsorSuffix: toProperCase(normalized.femaleSponsorSuffix),
+    femaleSponsorResidence: normalizeText(normalized.femaleSponsorResidence),
     // Clear legacy full-name / single-sponsor fields on write.
     maleSponsor: '',
     femaleSponsor: '',
@@ -285,6 +287,10 @@ export function buildConfirmationDocument(data = {}) {
       'confirmation',
       normalized.requirements,
     ).status,
+    baptismalCertificateBookNumber: normalizeText(normalized.baptismalCertificateBookNumber) || 'N/A',
+    baptismalCertificateLineNumber: normalizeText(normalized.baptismalCertificateLineNumber) || 'N/A',
+    baptismalCertificatePageNumber: normalizeText(normalized.baptismalCertificatePageNumber) || 'N/A',
+    baptismalCertificateRecordYear: normalizeText(normalized.baptismalCertificateRecordYear) || 'N/A',
     status: normalized.status || STATUS.ACTIVE,
   }
 }
@@ -318,6 +324,8 @@ export function mapConfirmationDocToUi(docData = {}) {
     femaleSponsorMiddleName: femaleSponsor.middleName,
     femaleSponsorLastName: femaleSponsor.lastName,
     femaleSponsorSuffix: femaleSponsor.suffix,
+    maleSponsorResidence: docData.maleSponsorResidence || '',
+    femaleSponsorResidence: docData.femaleSponsorResidence || '',
     requirements,
     requirementsStatus: summary.status,
   }
@@ -396,7 +404,7 @@ function buildConfirmationEventPayload(recordId, record) {
   const confirmandName = getConfirmandDisplayName(record)
   const titleName =
     confirmandName && confirmandName !== '—' ? confirmandName : 'Confirmation'
-  const time = normalizeTimeValue(record.time) || '08:00'
+  const time = normalizeTimeValue(record.time)
 
   return {
     source: EVENT_SOURCES.CONFIRMATION,
@@ -471,6 +479,7 @@ export async function createConfirmationRecord(data) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }
+    if (!normalized.dateOfBirth) delete payload.dateOfBirth
 
     const docRef = await addDoc(confirmationCollectionRef, payload)
 
@@ -520,6 +529,8 @@ export async function updateConfirmationRecord(id, data) {
     if (!id) {
       throw new Error('Confirmation record id is required.')
     }
+    const currentSnapshot = await getDoc(doc(db, COLLECTIONS.CONFIRMATION, id))
+    const currentData = currentSnapshot.exists() ? currentSnapshot.data() : {}
 
     const normalized = normalizeIncomingPayload(data)
     validateConfirmationPayload(normalized)
@@ -543,11 +554,14 @@ export async function updateConfirmationRecord(id, data) {
       delete payload.status
     }
 
+    if (!Object.prototype.hasOwnProperty.call(data, 'birthDate') && !Object.prototype.hasOwnProperty.call(data, 'dateOfBirth')) delete payload.dateOfBirth
+    delete payload.time
+
     const docRef = doc(db, COLLECTIONS.CONFIRMATION, id)
     await updateDoc(docRef, payload)
 
     try {
-      await syncSacramentalEvent(buildConfirmationEventPayload(id, payload))
+      await syncSacramentalEvent(buildConfirmationEventPayload(id, { ...payload, time: currentData.time }))
     } catch (syncError) {
       console.error('Failed to sync confirmation calendar event:', syncError)
     }
@@ -555,6 +569,7 @@ export async function updateConfirmationRecord(id, data) {
     return mapConfirmationDocToUi({
       id,
       ...payload,
+      time: currentData.time,
     })
   } catch (error) {
     if (
@@ -576,4 +591,11 @@ export async function updateConfirmationRecord(id, data) {
       error instanceof Error ? error.message : MESSAGES.ERROR.UNKNOWN
     throw new Error(`${MESSAGES.ERROR.CONFIRMATION_UPDATE} ${message}`)
   }
+}
+
+export async function deleteConfirmationRecord(id) {
+  if (!id) throw new Error('Confirmation record id is required.')
+  await deleteDoc(doc(db, COLLECTIONS.CONFIRMATION, id))
+  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.CONFIRMATION) } catch (error) { console.error('Failed to delete linked confirmation event:', error) }
+  return true
 }

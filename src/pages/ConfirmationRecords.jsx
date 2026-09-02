@@ -31,6 +31,7 @@ import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined'
 import { MARIAN_BLUE } from '../theme/parishTheme'
@@ -41,6 +42,7 @@ import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
 import GenderSelect from '../components/GenderSelect'
 import PageHeader from '../components/PageHeader'
+import PasswordVerificationDialog from '../components/PasswordVerificationDialog'
 import {
   DetailField,
   DetailSection,
@@ -51,11 +53,11 @@ import {
 import { displayValue } from '../utils/displayValue'
 import {
   createConfirmationRecord,
+  deleteConfirmationRecord,
   getConfirmationRecords,
   updateConfirmationRecord,
 } from '../services/confirmationService'
 import { formatFirestoreDate } from '../utils/date'
-import { formatScheduleTime } from '../utils/parishCalendar'
 import { formatConfirmationRecordNumber } from '../utils/recordNumber'
 import {
   getConfirmandDisplayName,
@@ -118,6 +120,10 @@ function mapConfirmationRecord(doc) {
     parish: doc.parish || '',
     province: doc.province || '',
     placeOfBaptism: doc.placeOfBaptism || doc.placeOfBirth || '',
+    baptismParishName: doc.baptismParishName || '',
+    parentsResidence: doc.parentsResidence || '',
+    maleSponsorResidence: doc.maleSponsorResidence || '',
+    femaleSponsorResidence: doc.femaleSponsorResidence || '',
     remarks: doc.remarks || '',
     requirements: requirementsSummary.requirements,
     requirementsSummary,
@@ -228,6 +234,9 @@ function ViewConfirmationDialog({ open, record, onClose }) {
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <DetailField label="Record Type" value={record.recordType} />
             </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}><DetailField label="Book No." value={record.bookNumber || 'N/A'} /></Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}><DetailField label="Line No." value={record.lineNumber ? String(record.lineNumber).padStart(2, '0') : 'N/A'} /></Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}><DetailField label="Page No." value={record.pageNumber ? String(record.pageNumber).padStart(3, '0') : 'N/A'} /></Grid>
           </DetailSection>
 
           <DetailSection title="Person Information" showDivider>
@@ -248,11 +257,9 @@ function ViewConfirmationDialog({ open, record, onClose }) {
               helperText=" "
             />
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <DetailField label="Date of Birth" value={record.birthDate} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <DetailField label="Age" value={record.age} />
             </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}><DetailField label="Name of Parish" value={record.baptismParishName || 'N/A'} /></Grid>
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <DetailField
                 label="Place of Baptism"
@@ -277,10 +284,11 @@ function ViewConfirmationDialog({ open, record, onClose }) {
                 value={record.motherDisplayName || getMotherDisplayName(record)}
               />
             </Grid>
+            <Grid size={{ xs: 12 }}><DetailField label="Residence (Address)" value={record.parentsResidence || 'N/A'} /></Grid>
           </DetailSection>
 
           <DetailSection title="Sponsors Information" showDivider>
-            <DetailSubheading>Male Sponsor</DetailSubheading>
+            <DetailSubheading>Sponsor 1</DetailSubheading>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <DetailField
                 label="First Name"
@@ -302,8 +310,9 @@ function ViewConfirmationDialog({ open, record, onClose }) {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <DetailField label="Suffix" value={record.maleSponsorSuffix} />
             </Grid>
+            <Grid size={{ xs: 12 }}><DetailField label="Residence" value={record.maleSponsorResidence || 'N/A'} /></Grid>
 
-            <DetailSubheading>Female Sponsor</DetailSubheading>
+            <DetailSubheading>Sponsor 2</DetailSubheading>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <DetailField
                 label="First Name"
@@ -325,6 +334,7 @@ function ViewConfirmationDialog({ open, record, onClose }) {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <DetailField label="Suffix" value={record.femaleSponsorSuffix} />
             </Grid>
+            <Grid size={{ xs: 12 }}><DetailField label="Residence" value={record.femaleSponsorResidence || 'N/A'} /></Grid>
           </DetailSection>
 
           <DetailSection title="Church Information" showDivider>
@@ -337,12 +347,6 @@ function ViewConfirmationDialog({ open, record, onClose }) {
                 value={record.confirmationDate}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <DetailField
-                label="Time"
-                value={formatScheduleTime(record.time || '08:00')}
-              />
-            </Grid>
             <Grid size={{ xs: 12 }}>
               <DetailField label="Remarks" value={record.remarks} />
             </Grid>
@@ -353,6 +357,7 @@ function ViewConfirmationDialog({ open, record, onClose }) {
               sacrament="confirmation"
               value={record.requirements}
               readOnly
+              confirmationBaptismalRecordDetails={{ bookNumber: record.baptismalCertificateBookNumber || 'N/A', lineNumber: record.baptismalCertificateLineNumber || 'N/A', pageNumber: record.baptismalCertificatePageNumber || 'N/A', recordYear: record.baptismalCertificateRecordYear || 'N/A' }}
             />
           </DetailSection>
 
@@ -397,6 +402,8 @@ export default function ConfirmationRecords() {
   const [viewOpen, setViewOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState('add')
+  const [editVerificationOpen, setEditVerificationOpen] = useState(false)
+  const [deleteVerificationOpen, setDeleteVerificationOpen] = useState(false)
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -580,9 +587,22 @@ export default function ConfirmationRecords() {
 
   function handleOpenEdit(record) {
     setSelectedRecord(record)
+    setEditVerificationOpen(true)
+  }
+
+  function handleCancelEditVerification() {
+    setEditVerificationOpen(false)
+    setSelectedRecord(null)
+  }
+
+  function handleEditVerified() {
+    setEditVerificationOpen(false)
     setFormMode('edit')
     setFormOpen(true)
   }
+  function handleOpenDelete(record) { setSelectedRecord(record); setDeleteVerificationOpen(true) }
+  function handleCancelDeleteVerification() { if (!saving) { setDeleteVerificationOpen(false); setSelectedRecord(null) } }
+  async function handleDeleteVerified() { setSaving(true); try { await deleteConfirmationRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Confirmation record deleted successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to delete confirmation record.', 'error') } finally { setSaving(false) } }
 
   function handleCloseForm() {
     if (saving) return
@@ -874,7 +894,6 @@ export default function ConfirmationRecords() {
                 <TableRow>
                   <TableCell>Record No.</TableCell>
                   <TableCell>Confirmand Name</TableCell>
-                  <TableCell>Date of Birth</TableCell>
                   <TableCell>Age</TableCell>
                   <TableCell>Confirmation Date</TableCell>
                   <TableCell>Minister</TableCell>
@@ -909,11 +928,6 @@ export default function ConfirmationRecords() {
                         sx={{ fontWeight: 600, color: 'text.primary' }}
                       >
                         {record.confirmandDisplayName}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {record.birthDate}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -959,6 +973,7 @@ export default function ConfirmationRecords() {
                             <VisibilityOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Delete"><IconButton size="small" aria-label={`Delete ${record.confirmandDisplayName}`} onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
@@ -1015,6 +1030,16 @@ export default function ConfirmationRecords() {
           />
         </Suspense>
       ) : null}
+
+      <PasswordVerificationDialog
+        open={editVerificationOpen}
+        title="Verify Password to Edit"
+        description="Enter your current password to edit this confirmation record."
+        confirmLabel="Verify and Edit"
+        onClose={handleCancelEditVerification}
+        onVerified={handleEditVerified}
+      />
+      <PasswordVerificationDialog open={deleteVerificationOpen} title="Delete Confirmation Record" description="Permanently delete this confirmation record and its linked schedule event? Enter your current password to confirm." confirmLabel="Verify and Delete" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
 
       <Snackbar
         open={snackbar.open}

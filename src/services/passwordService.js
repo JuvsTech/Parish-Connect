@@ -81,6 +81,40 @@ function mapPasswordAuthError(error) {
 }
 
 /**
+ * Re-authenticate the currently signed-in email/password user.
+ * The supplied password is used only to create the Firebase credential and
+ * is never persisted by Parish Connect.
+ */
+export async function verifyCurrentPassword(password) {
+  const currentPassword = String(password || '')
+  if (!currentPassword.trim()) {
+    const error = new Error(MESSAGES.ERROR.PASSWORD_CURRENT_REQUIRED)
+    error.fieldErrors = {
+      currentPassword: MESSAGES.ERROR.PASSWORD_CURRENT_REQUIRED,
+    }
+    throw error
+  }
+
+  const user = auth.currentUser
+  if (!user?.email || !user.uid) {
+    throw new Error(MESSAGES.ERROR.PASSWORD_UPDATE)
+  }
+
+  try {
+    const credential = EmailAuthProvider.credential(user.email, currentPassword)
+    await reauthenticateWithCredential(user, credential)
+    return true
+  } catch (error) {
+    const message = mapPasswordAuthError(error)
+    const authError = new Error(message)
+    if (message === MESSAGES.ERROR.PASSWORD_CURRENT_INCORRECT) {
+      authError.fieldErrors = { currentPassword: message }
+    }
+    throw authError
+  }
+}
+
+/**
  * Re-authenticate, update Firebase Auth password, and write an audit log.
  * Never stores passwords in Firestore.
  */
@@ -100,26 +134,9 @@ export async function changeUserPassword({
     throw error
   }
 
-  const user = auth.currentUser
-  if (!user?.email || !user.uid) {
-    throw new Error(MESSAGES.ERROR.PASSWORD_UPDATE)
-  }
+  await verifyCurrentPassword(currentPassword)
 
-  try {
-    const credential = EmailAuthProvider.credential(
-      user.email,
-      currentPassword,
-    )
-    await reauthenticateWithCredential(user, credential)
-  } catch (error) {
-    if (error?.fieldErrors) throw error
-    const message = mapPasswordAuthError(error)
-    const authError = new Error(message)
-    if (message === MESSAGES.ERROR.PASSWORD_CURRENT_INCORRECT) {
-      authError.fieldErrors = { currentPassword: message }
-    }
-    throw authError
-  }
+  const user = auth.currentUser
 
   try {
     await updatePassword(user, newPassword)

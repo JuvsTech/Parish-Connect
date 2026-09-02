@@ -32,6 +32,7 @@ import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined'
 import { MARIAN_BLUE } from '../theme/parishTheme'
@@ -42,6 +43,7 @@ import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
 import GenderSelect from '../components/GenderSelect'
 import PageHeader from '../components/PageHeader'
+import PasswordVerificationDialog from '../components/PasswordVerificationDialog'
 import {
   DetailField,
   DetailSection,
@@ -51,6 +53,7 @@ import {
 } from '../components/recordUi'
 import {
   createBaptismRecord,
+  deleteBaptismRecord,
   getBaptismRecords,
   updateBaptismRecord,
 } from '../services/baptismService'
@@ -89,6 +92,7 @@ function normalizeGodparentDetails(godparents) {
         middleName: String(item.middleName || '').trim(),
         lastName: String(item.lastName || '').trim(),
         suffix: String(item.suffix || '').trim(),
+        residence: String(item.residence || '').trim(),
         gender: String(item.gender || '').trim(),
       }
     })
@@ -99,6 +103,7 @@ function normalizeGodparentDetails(godparents) {
           item.middleName ||
           item.lastName ||
           item.suffix ||
+          item.residence ||
           item.gender),
     )
 }
@@ -277,6 +282,9 @@ function ViewBaptismDialog({ open, record, onClose }) {
             <Grid size={{ xs: 12, sm: 6 }}>
               <DetailField label="Record Year" value={record.recordYear} />
             </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Book No." value={record.bookNumber || 'N/A'} /></Grid>
+            <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Line No." value={record.lineNumber ? String(record.lineNumber).padStart(2, '0') : 'N/A'} /></Grid>
+            <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Page No." value={record.pageNumber ? String(record.pageNumber).padStart(3, '0') : 'N/A'} /></Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <DetailField label="Status" value={record.status} />
             </Grid>
@@ -339,6 +347,17 @@ function ViewBaptismDialog({ open, record, onClose }) {
               </Grid>
             ) : (
               <>
+              <Grid size={{ xs: 12 }}>
+                <Box component="ul" sx={{ m: 0, pl: 2.25 }}>
+                  {godparents.map((godparent, index) => (
+                    <Typography key={`godparent-${index}`} component="li" variant="body1" sx={{ fontWeight: 600, mb: 0.75 }}>
+                      {getGodparentDisplayName(godparent)} — {godparent.residence || 'Residence N/A'}
+                    </Typography>
+                  ))}
+                </Box>
+              </Grid>
+              {/* Legacy gender remains stored for backward compatibility. */}
+              {false && <>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography
                     variant="body2"
@@ -416,6 +435,7 @@ function ViewBaptismDialog({ open, record, onClose }) {
                     </Box>
                   )}
                 </Grid>
+              </>}
               </>
             )}
           </DetailSection>
@@ -430,7 +450,7 @@ function ViewBaptismDialog({ open, record, onClose }) {
             <Grid size={{ xs: 12, sm: 6 }}>
               <DetailField
                 label="Time"
-                value={formatScheduleTime(record.time || '08:00')}
+                value={record.time ? formatScheduleTime(record.time) : '—'}
               />
             </Grid>
             <Grid size={{ xs: 12 }}>
@@ -442,6 +462,7 @@ function ViewBaptismDialog({ open, record, onClose }) {
             <RequirementsChecklist
               sacrament="baptism"
               value={record.requirements}
+              registryNumber={record.birthCertificateRegistryNumber || 'N/A'}
               readOnly
             />
           </DetailSection>
@@ -494,6 +515,8 @@ export default function BaptismRecords() {
   const [viewOpen, setViewOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState('add')
+  const [editVerificationOpen, setEditVerificationOpen] = useState(false)
+  const [deleteVerificationOpen, setDeleteVerificationOpen] = useState(false)
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -698,9 +721,22 @@ export default function BaptismRecords() {
 
   function handleOpenEdit(record) {
     setSelectedRecord(record)
+    setEditVerificationOpen(true)
+  }
+
+  function handleCancelEditVerification() {
+    setEditVerificationOpen(false)
+    setSelectedRecord(null)
+  }
+
+  function handleEditVerified() {
+    setEditVerificationOpen(false)
     setFormMode('edit')
     setFormOpen(true)
   }
+  function handleOpenDelete(record) { setSelectedRecord(record); setDeleteVerificationOpen(true) }
+  function handleCancelDeleteVerification() { if (!saving) { setDeleteVerificationOpen(false); setSelectedRecord(null) } }
+  async function handleDeleteVerified() { setSaving(true); try { await deleteBaptismRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Baptismal record deleted successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to delete baptismal record.', 'error') } finally { setSaving(false) } }
 
   function handleCloseForm() {
     if (saving) return
@@ -1113,6 +1149,7 @@ export default function BaptismRecords() {
                             <VisibilityOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Delete"><IconButton size="small" aria-label={`Delete ${record.childDisplayName}`} onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
@@ -1169,6 +1206,16 @@ export default function BaptismRecords() {
           />
         </Suspense>
       ) : null}
+
+      <PasswordVerificationDialog
+        open={editVerificationOpen}
+        title="Verify Password to Edit"
+        description="Enter your current password to edit this baptismal record."
+        confirmLabel="Verify and Edit"
+        onClose={handleCancelEditVerification}
+        onVerified={handleEditVerified}
+      />
+      <PasswordVerificationDialog open={deleteVerificationOpen} title="Delete Baptismal Record" description={`Permanently delete ${selectedRecord?.childDisplayName || 'this baptismal record'} and its linked schedule event? Enter your current password to confirm.`} confirmLabel="Verify and Delete" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
 
       <Snackbar
         open={snackbar.open}

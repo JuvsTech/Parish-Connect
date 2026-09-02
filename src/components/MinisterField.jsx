@@ -92,7 +92,8 @@ export default function MinisterField({
     [ministers],
   )
 
-  const selected = String(value || '').trim()
+  const rawValue = String(value || '')
+  const selected = rawValue.trim()
   const inOptions = options.some((item) => item.label === selected)
   const isCustomValue = Boolean(selected && !inOptions)
   const showOtherName = otherSelected || isCustomValue
@@ -215,7 +216,7 @@ export default function MinisterField({
         <TextField
           id={otherNameId}
           label="Minister Name"
-          value={selected}
+          value={rawValue}
           onChange={handleOtherNameChange}
           onBlur={handleOtherNameBlur}
           fullWidth

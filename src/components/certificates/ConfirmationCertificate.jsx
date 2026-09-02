@@ -76,9 +76,7 @@ export default function ConfirmationCertificate({ data }) {
           {confirmationPhrase || '—'}
         </CertificateMetaRow>
         <CertificateMetaRow label="Administered by">
-          {data.ministerName
-            ? `Most Rev. Fr. ${data.ministerName}`
-            : 'Most Rev. Fr. —'}
+          {data.ministerName || '—'}
         </CertificateMetaRow>
         <CertificateMetaRow label="Sponsor">
           {sponsors.length ? sponsors.join(' · ') : '—'}
@@ -106,7 +104,7 @@ export default function ConfirmationCertificate({ data }) {
         />
       </footer>
 
-      <CertificateSignature ministerName={data.ministerName} />
+      <CertificateSignature ministerName="" role="Parish Priest / Parochial Vicar" blankName />
     </CertificateLayout>
   )
 }

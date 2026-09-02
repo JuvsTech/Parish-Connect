@@ -21,6 +21,7 @@ import { isSacramentalEvent } from '../constants'
 import { getSacramentColor } from '../constants/sacramentColors'
 import { MARIAN_BLUE } from '../theme/parishTheme'
 import { formatScheduleTime } from '../utils/parishCalendar'
+import TimeSelect from './TimeSelect'
 
 /**
  * Options for Calendar double-click Quick Create (sacramental records).
@@ -264,6 +265,8 @@ export default function ScheduleSacramentDialog({
   onClose,
   onContinue,
   defaultValue = '',
+  time = '',
+  onTimeChange,
 }) {
   const [selected, setSelected] = useState(defaultValue)
   const [attempted, setAttempted] = useState(false)
@@ -280,6 +283,7 @@ export default function ScheduleSacramentDialog({
       (item) => item.value === selected,
     )
     if (!option) return
+    if (!String(time || '').trim()) return
     onContinue?.(option)
   }
 
@@ -310,7 +314,10 @@ export default function ScheduleSacramentDialog({
         <FormControl error={attempted && !selected} fullWidth>
           <RadioGroup
             value={selected}
-            onChange={(event) => setSelected(event.target.value)}
+            onChange={(event) => {
+              setSelected(event.target.value)
+              onTimeChange?.('')
+            }}
           >
             {SACRAMENT_SCHEDULE_OPTIONS.map((option) => (
               <FormControlLabel
@@ -331,6 +338,20 @@ export default function ScheduleSacramentDialog({
             {attempted && !selected ? 'Please select a record type.' : ' '}
           </FormHelperText>
         </FormControl>
+        {selected ? (
+          <TimeSelect
+            id="schedule-sacrament-time"
+            value={time}
+            onChange={onTimeChange}
+            error={attempted && !time}
+            helperText={
+              attempted && !time
+                ? 'Please select a schedule time.'
+                : 'Time is managed by the Calendar/Schedule.'
+            }
+            required
+          />
+        ) : null}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
         <Button

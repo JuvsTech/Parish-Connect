@@ -7,6 +7,7 @@ import {
   Grid,
   Stack,
   Typography,
+  TextField,
 } from '@mui/material'
 import {
   getRequirementsSummary,
@@ -33,6 +34,10 @@ export default function RequirementsChecklist({
   onChange,
   disabled = false,
   readOnly = false,
+  registryNumber,
+  onRegistryNumberChange,
+  confirmationBaptismalRecordDetails,
+  onConfirmationBaptismalRecordDetailsChange,
 }) {
   const options = getSacramentRequirementOptions(sacrament)
   const requirements = normalizeSacramentRequirements(sacrament, value)
@@ -135,6 +140,44 @@ export default function RequirementsChecklist({
                     }
                     label={item.label}
                   />
+                )}
+                {sacrament === 'baptism' && item.key === 'birthCertificate' && (
+                  <TextField
+                    size="small"
+                    label="Registry Number"
+                    value={String(registryNumber ?? 'N/A')}
+                    onChange={(event) => onRegistryNumberChange?.(event.target.value)}
+                    onBlur={(event) => {
+                      if (!event.target.value.trim()) onRegistryNumberChange?.('N/A')
+                    }}
+                    disabled={disabled}
+                    slotProps={{ input: { readOnly } }}
+                    fullWidth
+                    sx={{ mt: 0.75, mb: 1 }}
+                  />
+                )}
+                {sacrament === 'confirmation' && item.key === 'baptismalCertificate' && (
+                  <Grid container spacing={1} sx={{ mt: 0.75, mb: 1 }}>
+                    {[
+                      ['baptismalCertificateBookNumber', 'bookNumber', 'Book No.'],
+                      ['baptismalCertificateLineNumber', 'lineNumber', 'Line No.'],
+                      ['baptismalCertificatePageNumber', 'pageNumber', 'Page No.'],
+                      ['baptismalCertificateRecordYear', 'recordYear', 'Year'],
+                    ].map(([field, key, label]) => (
+                      <Grid key={field} size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          label={label}
+                          value={String(confirmationBaptismalRecordDetails?.[key] || 'N/A')}
+                          onChange={(event) => onConfirmationBaptismalRecordDetailsChange?.(field, event.target.value)}
+                          onBlur={(event) => { if (!event.target.value.trim()) onConfirmationBaptismalRecordDetailsChange?.(field, 'N/A') }}
+                          disabled={disabled}
+                          slotProps={{ input: { readOnly } }}
+                          fullWidth
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
                 )}
               </Grid>
             ))}

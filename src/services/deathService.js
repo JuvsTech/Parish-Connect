@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -22,7 +23,7 @@ import {
   normalizeSacramentRequirements,
 } from '../constants/sacramentRequirements'
 import { normalizeGender } from '../constants/gender'
-import { syncSacramentalEvent } from './eventService'
+import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for death documents.
@@ -374,7 +375,7 @@ function buildDeathEventPayload(recordId, record) {
   const deceasedName = getDeceasedDisplayName(record)
   const titleName =
     deceasedName && deceasedName !== '—' ? deceasedName : 'Death'
-  const time = normalizeTimeValue(record.time) || '08:00'
+  const time = normalizeTimeValue(record.time)
 
   return {
     source: EVENT_SOURCES.DEATH,
@@ -506,6 +507,9 @@ export async function updateDeathRecord(id, data, options = {}) {
       throw new Error(MESSAGES.ERROR.DEATH_UPDATE)
     }
 
+    const currentSnapshot = await getDoc(doc(db, COLLECTIONS.DEATH, id))
+    const currentData = currentSnapshot.exists() ? currentSnapshot.data() : {}
+
     const normalized = normalizeIncomingPayload(data)
     validateDeathPayload(normalized)
 
@@ -533,12 +537,13 @@ export async function updateDeathRecord(id, data, options = {}) {
     }
 
     delete payload.createdBy
+    delete payload.time
 
     const docRef = doc(db, COLLECTIONS.DEATH, id)
     await updateDoc(docRef, payload)
 
     try {
-      await syncSacramentalEvent(buildDeathEventPayload(id, payload))
+      await syncSacramentalEvent(buildDeathEventPayload(id, { ...payload, time: currentData.time }))
     } catch (syncError) {
       console.error('Failed to sync death calendar event:', syncError)
     }
@@ -546,6 +551,7 @@ export async function updateDeathRecord(id, data, options = {}) {
     return mapDeathDocToUi({
       id,
       ...payload,
+      time: currentData.time,
     })
   } catch (error) {
     if (isFriendlyDeathError(error)) {
@@ -561,4 +567,11 @@ export async function updateDeathRecord(id, data, options = {}) {
 
     throw new Error(MESSAGES.ERROR.DEATH_UPDATE)
   }
+}
+
+export async function deleteDeathRecord(id) {
+  if (!id) throw new Error(MESSAGES.ERROR.DEATH_UPDATE)
+  await deleteDoc(doc(db, COLLECTIONS.DEATH, id))
+  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.DEATH) } catch (error) { console.error('Failed to delete linked death event:', error) }
+  return true
 }

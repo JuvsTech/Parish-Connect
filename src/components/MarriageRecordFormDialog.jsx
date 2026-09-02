@@ -69,7 +69,6 @@ import NameField from './NameField'
 import MinisterField from './MinisterField'
 import PlaceSelect from './PlaceSelect'
 import ResidencePlaceSelect from './ResidencePlaceSelect'
-import TimeSelect from './TimeSelect'
 import RequirementsChecklist from './RequirementsChecklist'
 import { toProperCase } from '../utils/textFormatter'
 
@@ -753,7 +752,6 @@ function MarriageRecordFormDialog({
         : workflow,
       minister: form.minister.trim(),
       marriageDate: form.marriageDate,
-      time: form.time.trim(),
       marriagePlace: form.marriagePlace.trim(),
       remarks: form.remarks.trim(),
       groomFirstName: form.groomFirstName.trim(),
@@ -822,6 +820,7 @@ function MarriageRecordFormDialog({
       payload.recordYear = Number(form.recordYear)
       payload.recordNumber = Number(form.recordNumber)
     }
+    if (!isEdit && workflow === 'new' && form.time.trim()) payload.time = form.time.trim()
 
     if (onSave) {
       await onSave(payload, { mode, record })
@@ -1259,18 +1258,6 @@ function MarriageRecordFormDialog({
                 required
                 disabled={saving}
                 slotProps={{ inputLabel: { shrink: true } }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TimeSelect
-                id="marriage-time"
-                value={form.time}
-                onChange={(value) =>
-                  setForm((prev) => ({ ...prev, time: value }))
-                }
-                onBlur={handleBlur('time')}
-                helperText=" "
-                disabled={saving}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>

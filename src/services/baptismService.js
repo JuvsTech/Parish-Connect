@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -24,7 +25,7 @@ import {
   normalizeSacramentRequirements,
 } from '../constants/sacramentRequirements'
 import { normalizeGender } from '../constants/gender'
-import { syncSacramentalEvent } from './eventService'
+import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for baptism documents.
@@ -67,6 +68,9 @@ export const baptismCollectionRef = collection(db, COLLECTIONS.BAPTISM)
 export const BAPTISM_FIELDS = {
   RECORD_NUMBER: 'recordNumber',
   RECORD_YEAR: 'recordYear',
+  BOOK_NUMBER: 'bookNumber',
+  LINE_NUMBER: 'lineNumber',
+  PAGE_NUMBER: 'pageNumber',
   CHILD_FIRST_NAME: 'childFirstName',
   CHILD_MIDDLE_NAME: 'childMiddleName',
   CHILD_LAST_NAME: 'childLastName',
@@ -168,13 +172,14 @@ function normalizeGodparents(godparents) {
       const middleName = toProperCase(item.middleName)
       const lastName = toProperCase(item.lastName)
       const suffix = toProperCase(item.suffix)
+      const residence = toProperCase(item.residence)
       const gender = normalizeGender(item.gender)
 
-      if (!firstName && !middleName && !lastName && !suffix && !gender) {
+      if (!firstName && !middleName && !lastName && !suffix && !residence && !gender) {
         return null
       }
 
-      return { firstName, middleName, lastName, suffix, gender }
+      return { firstName, middleName, lastName, suffix, residence, ...(gender ? { gender } : {}) }
     })
     .filter(Boolean)
 }
@@ -219,6 +224,9 @@ export function buildBaptismDocument(data = {}) {
   return {
     recordNumber: Number(normalized.recordNumber),
     recordYear: Number(normalized.recordYear),
+    bookNumber: normalizeText(normalized.bookNumber).toUpperCase(),
+    lineNumber: Number.isInteger(Number(normalized.lineNumber)) && Number(normalized.lineNumber) > 0 ? Number(normalized.lineNumber) : null,
+    pageNumber: Number.isInteger(Number(normalized.pageNumber)) && Number(normalized.pageNumber) > 0 ? Number(normalized.pageNumber) : null,
     recordType: normalizeRecordType(normalized.recordType),
     childFirstName: toProperCase(normalized.childFirstName),
     childMiddleName: toProperCase(normalized.childMiddleName),
@@ -253,6 +261,8 @@ export function buildBaptismDocument(data = {}) {
       'baptism',
       normalized.requirements,
     ).status,
+    birthCertificateRegistryNumber:
+      normalizeText(normalized.birthCertificateRegistryNumber) || 'N/A',
     status: normalizeRecordStatus(normalized.status || STATUS.SCHEDULED),
     createdBy: normalizeText(normalized.createdBy),
     updatedBy: normalizeText(normalized.updatedBy),
@@ -370,7 +380,7 @@ async function isRecordNumberTaken(recordYear, recordNumber, excludeId) {
 function buildBaptismEventPayload(recordId, record) {
   const childName = getChildDisplayName(record)
   const titleName = childName && childName !== '—' ? childName : 'Baptism'
-  const time = normalizeTimeValue(record.time) || '08:00'
+  const time = normalizeTimeValue(record.time)
 
   return {
     source: EVENT_SOURCES.BAPTISM,
@@ -503,6 +513,9 @@ export async function updateBaptismRecord(id, data, options = {}) {
       throw new Error('Baptism record id is required.')
     }
 
+    const currentSnapshot = await getDoc(doc(db, COLLECTIONS.BAPTISM, id))
+    const currentData = currentSnapshot.exists() ? currentSnapshot.data() : {}
+
     const normalized = normalizeIncomingPayload(data)
     validateBaptismPayload(normalized)
 
@@ -536,12 +549,17 @@ export async function updateBaptismRecord(id, data, options = {}) {
 
     // Do not overwrite createdBy on update
     delete payload.createdBy
+    delete payload.time
+    delete payload.status
+    if (!Object.prototype.hasOwnProperty.call(data, 'bookNumber')) delete payload.bookNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'lineNumber')) delete payload.lineNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'pageNumber')) delete payload.pageNumber
 
     const docRef = doc(db, COLLECTIONS.BAPTISM, id)
     await updateDoc(docRef, payload)
 
     try {
-      await syncSacramentalEvent(buildBaptismEventPayload(id, payload))
+      await syncSacramentalEvent(buildBaptismEventPayload(id, { ...payload, time: currentData.time }))
     } catch (syncError) {
       console.error('Failed to sync baptism calendar event:', syncError)
     }
@@ -549,6 +567,8 @@ export async function updateBaptismRecord(id, data, options = {}) {
     return mapBaptismDocToUi({
       id,
       ...payload,
+      time: currentData.time,
+      status: currentData.status,
     })
   } catch (error) {
     if (
@@ -568,4 +588,11 @@ export async function updateBaptismRecord(id, data, options = {}) {
       error instanceof Error ? error.message : MESSAGES.ERROR.UNKNOWN
     throw new Error(`${MESSAGES.ERROR.BAPTISM_UPDATE} ${message}`)
   }
+}
+
+export async function deleteBaptismRecord(id) {
+  if (!id) throw new Error('Baptism record id is required.')
+  await deleteDoc(doc(db, COLLECTIONS.BAPTISM, id))
+  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.BAPTISM) } catch (error) { console.error('Failed to delete linked baptism event:', error) }
+  return true
 }

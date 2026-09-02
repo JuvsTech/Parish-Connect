@@ -17,7 +17,7 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import CertificatePrepActions from './CertificateGenerationPrep'
 import { MARIAN_BLUE } from '../theme/parishTheme'
 import { MESSAGES } from '../constants'
-import { computeAgeFromDateOfBirth, parseDisplayDate } from '../utils/date'
+import { parseDisplayDate } from '../utils/date'
 import {
   getRecordNumberParts,
   isRecordNumberDuplicate,
@@ -45,7 +45,6 @@ import FormSection from './FormSection'
 import FormFieldSubheading from './FormFieldSubheading'
 import NameField from './NameField'
 import MinisterField from './MinisterField'
-import TimeSelect from './TimeSelect'
 import RequirementsChecklist from './RequirementsChecklist'
 import GenderSelect from './GenderSelect'
 import { normalizeGender } from '../constants/gender'
@@ -53,14 +52,17 @@ import { normalizeGender } from '../constants/gender'
 const CONFIRMATION_FIELD_LABELS = {
   recordNumber: 'Record Number',
   recordYear: 'Record Year',
+  bookNumber: 'Book No.',
+  lineNumber: 'Line No.',
+  pageNumber: 'Page No.',
   confirmationDate: 'Date of Confirmation',
   confirmandFirstName: 'First Name',
   confirmandMiddleName: 'Middle Name',
   confirmandLastName: 'Last Name',
   confirmandSuffix: 'Suffix',
   gender: 'Gender',
-  birthDate: 'Date of Birth',
   age: 'Age',
+  baptismParishName: 'Name of Parish',
   placeOfBaptism: 'Place of Baptism',
   fatherFirstName: "Father's First Name",
   fatherMiddleName: "Father's Middle Name",
@@ -84,6 +86,9 @@ const CONFIRMATION_FIELD_LABELS = {
 const INITIAL_FORM = {
   recordYear: '',
   recordNumber: '',
+  bookNumber: '',
+  lineNumber: '',
+  pageNumber: '',
   confirmationDate: '',
   time: '',
   confirmandFirstName: '',
@@ -91,8 +96,8 @@ const INITIAL_FORM = {
   confirmandLastName: '',
   confirmandSuffix: '',
   gender: '',
-  birthDate: '',
   age: '',
+  baptismParishName: '',
   placeOfBaptism: '',
   fatherFirstName: '',
   fatherMiddleName: '',
@@ -102,17 +107,24 @@ const INITIAL_FORM = {
   motherMiddleName: '',
   motherLastName: '',
   motherSuffix: '',
+  parentsResidence: '',
   maleSponsorFirstName: '',
   maleSponsorMiddleName: '',
   maleSponsorLastName: '',
   maleSponsorSuffix: '',
+  maleSponsorResidence: '',
   femaleSponsorFirstName: '',
   femaleSponsorMiddleName: '',
   femaleSponsorLastName: '',
   femaleSponsorSuffix: '',
+  femaleSponsorResidence: '',
   minister: '',
   remarks: '',
   requirements: emptySacramentRequirements('confirmation'),
+  baptismalCertificateBookNumber: 'N/A',
+  baptismalCertificateLineNumber: 'N/A',
+  baptismalCertificatePageNumber: 'N/A',
+  baptismalCertificateRecordYear: 'N/A',
 }
 
 function blankToEmpty(value) {
@@ -122,11 +134,12 @@ function blankToEmpty(value) {
 
 function recordToForm(record) {
   const parts = getRecordNumberParts(record)
-  const birthDate = parseDisplayDate(record.birthDate || record.dateOfBirth)
-
   return {
     recordYear: parts?.recordYear != null ? String(parts.recordYear) : '',
     recordNumber: parts?.recordNumber != null ? String(parts.recordNumber) : '',
+    bookNumber: blankToEmpty(record.bookNumber),
+    lineNumber: record.lineNumber != null ? String(record.lineNumber) : '',
+    pageNumber: record.pageNumber != null ? String(record.pageNumber) : '',
     confirmationDate: parseDisplayDate(record.confirmationDate),
     time: blankToEmpty(record.time),
     confirmandFirstName: blankToEmpty(record.confirmandFirstName),
@@ -134,14 +147,8 @@ function recordToForm(record) {
     confirmandLastName: blankToEmpty(record.confirmandLastName),
     confirmandSuffix: blankToEmpty(record.confirmandSuffix),
     gender: normalizeGender(record.gender),
-    birthDate,
-    age:
-      record.age != null && record.age !== ''
-        ? String(record.age)
-        : (() => {
-            const computed = computeAgeFromDateOfBirth(birthDate)
-            return computed == null ? '' : String(computed)
-          })(),
+    age: record.age != null && record.age !== '' ? String(record.age) : '',
+    baptismParishName: blankToEmpty(record.baptismParishName),
     placeOfBaptism: blankToEmpty(
       record.placeOfBaptism || record.placeOfBirth,
     ),
@@ -153,6 +160,7 @@ function recordToForm(record) {
     motherMiddleName: blankToEmpty(record.motherMiddleName),
     motherLastName: blankToEmpty(record.motherLastName),
     motherSuffix: blankToEmpty(record.motherSuffix),
+    parentsResidence: blankToEmpty(record.parentsResidence),
     ...(() => {
       const male = resolveMaleSponsorNameParts(record)
       const female = resolveFemaleSponsorNameParts(record)
@@ -161,10 +169,12 @@ function recordToForm(record) {
         maleSponsorMiddleName: male.middleName,
         maleSponsorLastName: male.lastName,
         maleSponsorSuffix: male.suffix,
+        maleSponsorResidence: blankToEmpty(record.maleSponsorResidence),
         femaleSponsorFirstName: female.firstName,
         femaleSponsorMiddleName: female.middleName,
         femaleSponsorLastName: female.lastName,
         femaleSponsorSuffix: female.suffix,
+        femaleSponsorResidence: blankToEmpty(record.femaleSponsorResidence),
       }
     })(),
     minister: blankToEmpty(record.minister),
@@ -173,6 +183,10 @@ function recordToForm(record) {
       'confirmation',
       record.requirements,
     ),
+    baptismalCertificateBookNumber: blankToEmpty(record.baptismalCertificateBookNumber) || 'N/A',
+    baptismalCertificateLineNumber: blankToEmpty(record.baptismalCertificateLineNumber) || 'N/A',
+    baptismalCertificatePageNumber: blankToEmpty(record.baptismalCertificatePageNumber) || 'N/A',
+    baptismalCertificateRecordYear: blankToEmpty(record.baptismalCertificateRecordYear) || 'N/A',
   }
 }
 
@@ -251,24 +265,20 @@ function validateConfirmationForm(
     errors.gender = VALIDATION_MESSAGES.REQUIRED
   }
 
-  if (!form.birthDate) {
-    errors.birthDate = VALIDATION_MESSAGES.REQUIRED
-  } else if (
-    form.confirmationDate &&
-    form.birthDate > form.confirmationDate
-  ) {
-    errors.birthDate = 'Birth Date cannot be later than Confirmation Date.'
-  } else if (
-    !isPositiveInteger(form.age) ||
-    Number(form.age) < 13
-  ) {
-    errors.birthDate =
-      'The candidate must be at least 13 years old to receive the Sacrament of Confirmation.'
+  if (!isPositiveInteger(form.age) || Number(form.age) < 13) {
+    errors.age = 'Age must be a whole number of at least 13.'
   }
+
+  if (!String(form.baptismParishName ?? '').trim()) errors.baptismParishName = VALIDATION_MESSAGES.REQUIRED
 
   if (!String(form.placeOfBaptism ?? '').trim()) {
     errors.placeOfBaptism = VALIDATION_MESSAGES.REQUIRED
   }
+
+  const roman = String(form.bookNumber || '').trim().toUpperCase()
+  if (roman && !/^(?=[MDCLXVI])M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(roman)) errors.bookNumber = 'Use a valid Roman numeral.'
+  if (String(form.lineNumber || '').trim() && !isPositiveInteger(form.lineNumber)) errors.lineNumber = 'Line No. must be a positive whole number.'
+  if (String(form.pageNumber || '').trim() && !isPositiveInteger(form.pageNumber)) errors.pageNumber = 'Page No. must be a positive whole number.'
 
   applyNameError(errors, 'fatherFirstName', form.fatherFirstName, true)
   applyNameError(errors, 'fatherMiddleName', form.fatherMiddleName, false)
@@ -407,17 +417,12 @@ function ConfirmationRecordFormDialog({
       const value = event.target.value
       setForm((prev) => {
         const next = { ...prev, [field]: value }
-        if (field === 'birthDate') {
-          const computed = computeAgeFromDateOfBirth(value)
-          next.age = computed == null ? '' : String(computed)
-        }
         return next
       })
-      if (field === 'confirmationDate' || field === 'birthDate') {
+      if (field === 'confirmationDate') {
         setTouched((prev) => ({
           ...prev,
           [field]: true,
-          ...(field === 'birthDate' ? { age: true } : {}),
         }))
       }
     }
@@ -460,14 +465,13 @@ function ConfirmationRecordFormDialog({
       // Workflow is locked: Calendar → new, sacramental module → old.
       recordType: isEdit ? record?.recordType || 'old' : workflow,
       confirmationDate: form.confirmationDate,
-      time: form.time.trim(),
       confirmandFirstName: form.confirmandFirstName.trim(),
       confirmandMiddleName: form.confirmandMiddleName.trim(),
       confirmandLastName: form.confirmandLastName.trim(),
       confirmandSuffix: form.confirmandSuffix.trim(),
       gender: normalizeGender(form.gender),
-      birthDate: form.birthDate,
       age: Number(form.age),
+      baptismParishName: form.baptismParishName.trim(),
       placeOfBaptism: form.placeOfBaptism.trim(),
       fatherFirstName: form.fatherFirstName.trim(),
       fatherMiddleName: form.fatherMiddleName.trim(),
@@ -477,20 +481,30 @@ function ConfirmationRecordFormDialog({
       motherMiddleName: form.motherMiddleName.trim(),
       motherLastName: form.motherLastName.trim(),
       motherSuffix: form.motherSuffix.trim(),
+      parentsResidence: form.parentsResidence.trim(),
       maleSponsorFirstName: form.maleSponsorFirstName.trim(),
       maleSponsorMiddleName: form.maleSponsorMiddleName.trim(),
       maleSponsorLastName: form.maleSponsorLastName.trim(),
       maleSponsorSuffix: form.maleSponsorSuffix.trim(),
+      maleSponsorResidence: form.maleSponsorResidence.trim(),
       femaleSponsorFirstName: form.femaleSponsorFirstName.trim(),
       femaleSponsorMiddleName: form.femaleSponsorMiddleName.trim(),
       femaleSponsorLastName: form.femaleSponsorLastName.trim(),
       femaleSponsorSuffix: form.femaleSponsorSuffix.trim(),
+      femaleSponsorResidence: form.femaleSponsorResidence.trim(),
       minister: form.minister.trim(),
       remarks: form.remarks.trim(),
       requirements: normalizeSacramentRequirements(
         'confirmation',
         form.requirements,
       ),
+      bookNumber: form.bookNumber.trim().toUpperCase(),
+      lineNumber: form.lineNumber.trim() ? Number(form.lineNumber) : null,
+      pageNumber: form.pageNumber.trim() ? Number(form.pageNumber) : null,
+      baptismalCertificateBookNumber: form.baptismalCertificateBookNumber.trim() || 'N/A',
+      baptismalCertificateLineNumber: form.baptismalCertificateLineNumber.trim() || 'N/A',
+      baptismalCertificatePageNumber: form.baptismalCertificatePageNumber.trim() || 'N/A',
+      baptismalCertificateRecordYear: form.baptismalCertificateRecordYear.trim() || 'N/A',
     }
 
     if (isEdit || isOldRecord) {
@@ -499,6 +513,7 @@ function ConfirmationRecordFormDialog({
       payload.recordYear = parts.recordYear
       payload.recordNumber = parts.recordNumber
     }
+    if (!isEdit && workflow === 'new' && form.time.trim()) payload.time = form.time.trim()
 
     try {
       await onSave?.(payload, { mode, record })
@@ -610,15 +625,24 @@ function ConfirmationRecordFormDialog({
                   }
                 />
               </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <TextField label="Book No." value={form.bookNumber} onChange={(event) => setForm((prev) => ({ ...prev, bookNumber: event.target.value.toUpperCase().replace(/[^MDCLXVI]/g, '') }))} onBlur={handleBlur('bookNumber')} error={showError('bookNumber')} helperText={showError('bookNumber') ? errors.bookNumber : 'Roman numeral'} fullWidth disabled={saving} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <TextField label="Line No." value={form.lineNumber ? String(form.lineNumber).padStart(2, '0') : ''} onChange={(event) => setForm((prev) => ({ ...prev, lineNumber: event.target.value.replace(/\D/g, '').slice(0, 2).replace(/^0+/, '') }))} onBlur={handleBlur('lineNumber')} error={showError('lineNumber')} helperText={showError('lineNumber') ? errors.lineNumber : '2-digit format'} fullWidth inputMode="numeric" disabled={saving} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <TextField label="Page No." value={form.pageNumber ? String(form.pageNumber).padStart(3, '0') : ''} onChange={(event) => setForm((prev) => ({ ...prev, pageNumber: event.target.value.replace(/\D/g, '').slice(0, 3).replace(/^0+/, '') }))} onBlur={handleBlur('pageNumber')} error={showError('pageNumber')} helperText={showError('pageNumber') ? errors.pageNumber : '3-digit format'} fullWidth inputMode="numeric" disabled={saving} />
+              </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Record Year"
                   value={form.recordYear}
-                  onChange={isOldRecord ? handleRecordYearChange : undefined}
-                  onBlur={isOldRecord ? handleBlur('recordYear') : undefined}
-                  error={isOldRecord && showError('recordYear')}
+                  onChange={handleRecordYearChange}
+                  onBlur={handleBlur('recordYear')}
+                  error={showError('recordYear')}
                   helperText={
-                    isOldRecord && showError('recordYear')
+                    showError('recordYear')
                       ? errors.recordYear
                       : isOldRecord
                         ? 'Enter the year from the parish registry book.'
@@ -626,7 +650,7 @@ function ConfirmationRecordFormDialog({
                   }
                   fullWidth
                   required={isOldRecord}
-                  disabled={saving || isEdit}
+                  disabled={saving}
                   inputMode="numeric"
                   sx={
                     isEdit
@@ -683,18 +707,6 @@ function ConfirmationRecordFormDialog({
                 }}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TimeSelect
-                id="confirmation-time"
-                value={form.time}
-                onChange={(value) =>
-                  setForm((prev) => ({ ...prev, time: value }))
-                }
-                onBlur={handleBlur('time')}
-                helperText=" "
-                disabled={saving}
-              />
-            </Grid>
           </FormSection>
 
           <FormSection title="Person Information" showDivider>
@@ -736,40 +748,24 @@ function ConfirmationRecordFormDialog({
             />
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
-                label="Date of Birth"
-                type="date"
-                value={form.birthDate}
-                onChange={handleChange('birthDate')}
-                onBlur={handleBlur('birthDate')}
-                error={showError('birthDate')}
-                helperText={showError('birthDate') ? errors.birthDate : ' '}
-                fullWidth
-                required
-                disabled={saving}
-                slotProps={{
-                  inputLabel: { shrink: true },
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <TextField
                 label="Age"
                 value={form.age}
+                onChange={(event) => setForm((prev) => ({ ...prev, age: event.target.value.replace(/\D/g, '').slice(0, 3) }))}
+                onBlur={handleBlur('age')}
                 error={showError('age')}
                 helperText={
                   showError('age')
                     ? errors.age
-                    : 'Auto-calculated from Date of Birth'
+                    : 'Enter age at confirmation'
                 }
                 fullWidth
                 required
                 disabled={saving}
-                slotProps={{
-                  input: {
-                    readOnly: true,
-                  },
-                }}
+                inputMode="numeric"
               />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField label="Name of Parish" value={form.baptismParishName} onChange={handleChange('baptismParishName')} onBlur={handleBlur('baptismParishName')} error={showError('baptismParishName')} helperText={showError('baptismParishName') ? errors.baptismParishName : ' '} fullWidth required disabled={saving} />
             </Grid>
             <Grid size={{ xs: 12 }}>
               <TextField
@@ -833,10 +829,13 @@ function ConfirmationRecordFormDialog({
               {...nameFieldProps}
             />
             <NameField label="Suffix" field="motherSuffix" {...nameFieldProps} />
+            <Grid size={{ xs: 12 }}>
+              <TextField label="Parents' Residence (Address)" value={form.parentsResidence} onChange={handleChange('parentsResidence')} fullWidth disabled={saving} helperText=" " />
+            </Grid>
           </FormSection>
 
           <FormSection title="Sponsors Information" showDivider>
-            <FormFieldSubheading>Male Sponsor</FormFieldSubheading>
+            <FormFieldSubheading>Sponsor 1</FormFieldSubheading>
             <NameField
               label="First Name"
               field="maleSponsorFirstName"
@@ -859,8 +858,9 @@ function ConfirmationRecordFormDialog({
               field="maleSponsorSuffix"
               {...nameFieldProps}
             />
+            <Grid size={{ xs: 12 }}><TextField label="Residence" value={form.maleSponsorResidence} onChange={handleChange('maleSponsorResidence')} fullWidth disabled={saving} helperText=" " /></Grid>
 
-            <FormFieldSubheading spaced>Female Sponsor</FormFieldSubheading>
+            <FormFieldSubheading spaced>Sponsor 2</FormFieldSubheading>
             <NameField
               label="First Name"
               field="femaleSponsorFirstName"
@@ -883,6 +883,7 @@ function ConfirmationRecordFormDialog({
               field="femaleSponsorSuffix"
               {...nameFieldProps}
             />
+            <Grid size={{ xs: 12 }}><TextField label="Residence" value={form.femaleSponsorResidence} onChange={handleChange('femaleSponsorResidence')} fullWidth disabled={saving} helperText=" " /></Grid>
           </FormSection>
 
           <FormSection title="Requirements Checklist" showDivider>
@@ -893,6 +894,13 @@ function ConfirmationRecordFormDialog({
                 setForm((prev) => ({ ...prev, requirements: next }))
               }
               disabled={saving}
+              confirmationBaptismalRecordDetails={{
+                bookNumber: form.baptismalCertificateBookNumber,
+                lineNumber: form.baptismalCertificateLineNumber,
+                pageNumber: form.baptismalCertificatePageNumber,
+                recordYear: form.baptismalCertificateRecordYear,
+              }}
+              onConfirmationBaptismalRecordDetailsChange={(key, value) => setForm((prev) => ({ ...prev, [key]: value }))}
             />
           </FormSection>
 

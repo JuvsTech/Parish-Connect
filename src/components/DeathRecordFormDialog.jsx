@@ -52,7 +52,6 @@ import FormFieldSubheading from './FormFieldSubheading'
 import NameField from './NameField'
 import MinisterField from './MinisterField'
 import ResidencePlaceSelect from './ResidencePlaceSelect'
-import TimeSelect from './TimeSelect'
 import RequirementsChecklist from './RequirementsChecklist'
 import GenderSelect from './GenderSelect'
 import { normalizeGender } from '../constants/gender'
@@ -526,7 +525,6 @@ function DeathRecordFormDialog({
         : workflow,
       minister: form.minister.trim(),
       dateOfDeath: form.dateOfDeath,
-      time: form.time.trim(),
       firstName: form.firstName.trim(),
       middleName: form.middleName.trim(),
       lastName: form.lastName.trim(),
@@ -560,6 +558,7 @@ function DeathRecordFormDialog({
       payload.recordYear = parts.recordYear
       payload.recordNumber = parts.recordNumber
     }
+    if (!isEdit && workflow === 'new' && form.time.trim()) payload.time = form.time.trim()
 
     try {
       await onSave?.(payload, { mode, record })
@@ -720,18 +719,6 @@ function DeathRecordFormDialog({
                 error={showError('minister')}
                 helperText={showError('minister') ? errors.minister : ' '}
                 required
-                disabled={saving}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TimeSelect
-                id="death-time"
-                value={form.time}
-                onChange={(value) =>
-                  setForm((prev) => ({ ...prev, time: value }))
-                }
-                onBlur={handleBlur('time')}
-                helperText=" "
                 disabled={saving}
               />
             </Grid>

@@ -1386,6 +1386,8 @@ export default function Dashboard() {
           setScheduleTime('')
         }}
         onContinue={handleContinueSchedule}
+        time={scheduleTime}
+        onTimeChange={setScheduleTime}
       />
 
       <Suspense fallback={null}>

@@ -15,7 +15,7 @@ import { buildUnifiedReportDocument } from '../reports/unifiedReportDocument'
 
 /**
  * Official Parish Connect report template (Preview + Print).
- * PDF must mirror this exact structure.
+ * PDF must mizrror this exact structure.
  */
 export default function ReportTemplate({ summary, rows = [] }) {
   const report = buildUnifiedReportDocument({ summary, rows })

@@ -27,9 +27,6 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
 import { MARIAN_BLUE } from '../theme/parishTheme'
 import {
   MESSAGES,
-  RECORD_STATUS_OPTIONS,
-  STATUS,
-  normalizeRecordStatus,
 } from '../constants'
 import { parseDisplayDate } from '../utils/date'
 import { formatPersonName } from '../utils/personName'
@@ -60,6 +57,9 @@ const PLACE_REQUIRED_MESSAGE =
 const BAPTISM_FIELD_LABELS = {
   recordNumber: 'Record Number',
   recordYear: 'Record Year',
+  bookNumber: 'Book No.',
+  lineNumber: 'Line No.',
+  pageNumber: 'Page No.',
   minister: 'Minister',
   baptismDate: 'Baptism Date',
   childFirstName: 'Child First Name',
@@ -83,7 +83,7 @@ const BAPTISM_FIELD_LABELS = {
   'godparent.middleName': 'Middle Name',
   'godparent.lastName': 'Last Name',
   'godparent.suffix': 'Suffix',
-  'godparent.gender': 'Gender',
+  'godparent.residence': 'Residence',
 }
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges'
 import {
@@ -94,7 +94,6 @@ import UnsavedChangesDialog from './UnsavedChangesDialog'
 import FormSection from './FormSection'
 import FormFieldSubheading from './FormFieldSubheading'
 import NameField from './NameField'
-import TimeSelect from './TimeSelect'
 import MinisterField from './MinisterField'
 import PlaceSelect from './PlaceSelect'
 import RequirementsChecklist from './RequirementsChecklist'
@@ -111,7 +110,9 @@ export const LEGITIMACY_OPTIONS = [
 const INITIAL_FORM = {
   recordYear: '',
   recordNumber: '',
-  status: STATUS.SCHEDULED,
+  bookNumber: '',
+  lineNumber: '',
+  pageNumber: '',
   baptismDate: '',
   minister: '',
   time: '',
@@ -135,6 +136,7 @@ const INITIAL_FORM = {
   legitimacyStatus: '',
   remarks: '',
   notes: '',
+  birthCertificateRegistryNumber: 'N/A',
   requirements: emptySacramentRequirements('baptism'),
 }
 
@@ -145,7 +147,8 @@ function createGodparent(index = 0, data = {}) {
     middleName: data.middleName || '',
     lastName: data.lastName || '',
     suffix: data.suffix || '',
-    gender: data.gender || '',
+    residence: data.residence || '',
+    legacyGender: data.gender || data.legacyGender || '',
   }
 }
 
@@ -160,7 +163,8 @@ function mapGodparentFromRecord(item, index) {
     middleName: blankToEmpty(item?.middleName),
     lastName: blankToEmpty(item?.lastName),
     suffix: blankToEmpty(item?.suffix),
-    gender: normalizeGender(item?.gender),
+    residence: blankToEmpty(item?.residence),
+    legacyGender: normalizeGender(item?.gender),
   })
 }
 
@@ -195,7 +199,9 @@ function recordToForm(record) {
     ...INITIAL_FORM,
     recordYear: parts?.recordYear != null ? String(parts.recordYear) : '',
     recordNumber: parts?.recordNumber != null ? String(parts.recordNumber) : '',
-    status: normalizeRecordStatus(record.status),
+    bookNumber: blankToEmpty(record.bookNumber),
+    lineNumber: record.lineNumber != null ? String(record.lineNumber) : '',
+    pageNumber: record.pageNumber != null ? String(record.pageNumber) : '',
     baptismDate: parseDisplayDate(record.baptismDate),
     minister: blankToEmpty(record.minister),
     time: blankToEmpty(record.time),
@@ -225,6 +231,8 @@ function recordToForm(record) {
     legitimacyStatus: record.legitimacyStatus || record.legitimacy || '',
     remarks: blankToEmpty(record.remarks),
     notes: blankToEmpty(record.notes),
+    birthCertificateRegistryNumber:
+      blankToEmpty(record.birthCertificateRegistryNumber) || 'N/A',
     requirements: normalizeSacramentRequirements(
       'baptism',
       record.requirements,
@@ -247,6 +255,16 @@ function validateBaptismForm(
   const errors = {}
 
   if (requireManualRecordNumber) {
+    const roman = String(form.bookNumber || '').trim().toUpperCase()
+    if (roman && !/^(?=[MDCLXVI]+$)M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(roman)) {
+      errors.bookNumber = 'Use a valid Roman numeral (for example: I, IV, XII).'
+    }
+    if (String(form.lineNumber || '').trim() && !isPositiveInteger(form.lineNumber)) {
+      errors.lineNumber = 'Line No. must be a positive whole number.'
+    }
+    if (String(form.pageNumber || '').trim() && !isPositiveInteger(form.pageNumber)) {
+      errors.pageNumber = 'Page No. must be a positive whole number.'
+    }
     if (!String(form.recordYear ?? '').trim()) {
       errors.recordYear = VALIDATION_MESSAGES.REQUIRED
     } else if (!isValidFourDigitYear(form.recordYear)) {
@@ -334,10 +352,6 @@ function validateBaptismForm(
     applyNameError(rowErrors, 'lastName', godparent.lastName, true)
     applyNameError(rowErrors, 'suffix', godparent.suffix, false)
 
-    if (!String(godparent.gender ?? '').trim()) {
-      rowErrors.gender = VALIDATION_MESSAGES.REQUIRED
-    }
-
     if (Object.keys(rowErrors).length > 0) {
       godparentErrors[godparent.id] = rowErrors
     }
@@ -408,7 +422,6 @@ function BaptismRecordFormDialog({
         parentsResidencePlace: { ...EMPTY_PLACE },
         baptismDate: defaultSacramentDate || '',
         time: defaultSacramentTime || '',
-        status: STATUS.SCHEDULED,
         godparents: [],
       }
     }
@@ -450,6 +463,18 @@ function BaptismRecordFormDialog({
   function handleRecordYearChange(event) {
     const value = event.target.value.replace(/[^\d]/g, '')
     setForm((prev) => ({ ...prev, recordYear: value }))
+  }
+
+  function handleRegistryNumberChange(field) {
+    return (event) => setForm((prev) => ({
+      ...prev,
+      [field]: event.target.value.replace(/[^\d]/g, ''),
+    }))
+  }
+
+  function handleBookNumberChange(event) {
+    const value = event.target.value.toUpperCase().replace(/[^MDCLXVI]/g, '')
+    setForm((prev) => ({ ...prev, bookNumber: value }))
   }
 
   function showGodparentFieldError(id, field) {
@@ -505,7 +530,7 @@ function BaptismRecordFormDialog({
   }
 
   function handleGodparentBlur(id, field) {
-    if (field !== 'gender') {
+    if (field !== 'legacyGender') {
       setForm((prev) => ({
         ...prev,
         godparents: prev.godparents.map((item) => {
@@ -548,7 +573,10 @@ function BaptismRecordFormDialog({
       middleName: item.middleName.trim(),
       lastName: item.lastName.trim(),
       suffix: item.suffix.trim(),
-      gender: normalizeGender(item.gender),
+      residence: item.residence.trim(),
+      ...(item.legacyGender
+        ? { gender: normalizeGender(item.legacyGender) }
+        : {}),
     }))
 
     const placeOfBirth = formatPlace(form.placeOfBirthPlace)
@@ -557,7 +585,6 @@ function BaptismRecordFormDialog({
     const payload = {
       baptismDate: form.baptismDate,
       minister: form.minister.trim(),
-      time: form.time.trim(),
       childFirstName: form.childFirstName.trim(),
       childMiddleName: form.childMiddleName.trim(),
       childLastName: form.childLastName.trim(),
@@ -584,7 +611,8 @@ function BaptismRecordFormDialog({
         'baptism',
         form.requirements,
       ),
-      status: isEdit ? form.status : STATUS.SCHEDULED,
+      birthCertificateRegistryNumber:
+        form.birthCertificateRegistryNumber.trim() || 'N/A',
       // Workflow is locked: Calendar → new, sacramental module → old.
       recordType: isEdit ? record?.recordType || 'old' : workflow,
     }
@@ -592,7 +620,11 @@ function BaptismRecordFormDialog({
     if (isEdit || isOldRecord) {
       payload.recordYear = Number(form.recordYear)
       payload.recordNumber = Number(form.recordNumber)
+      if (form.bookNumber.trim()) payload.bookNumber = form.bookNumber.trim().toUpperCase()
+      if (form.lineNumber.trim()) payload.lineNumber = Number(form.lineNumber)
+      if (form.pageNumber.trim()) payload.pageNumber = Number(form.pageNumber)
     }
+    if (!isEdit && workflow === 'new' && form.time.trim()) payload.time = form.time.trim()
 
     try {
       await onSave(payload, { mode, record })
@@ -678,13 +710,13 @@ function BaptismRecordFormDialog({
 
           {(isOldRecord || isEdit) && (
             <FormSection title="Record Information">
-              <Grid size={{ xs: 12, sm: isEdit ? 4 : 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
                   label="Record Number"
                   value={form.recordNumber}
-                  onChange={isOldRecord ? handleRecordNumberChange : undefined}
-                  onBlur={isOldRecord ? handleBlur('recordNumber') : undefined}
-                  error={isOldRecord && showError('recordNumber')}
+                  onChange={handleRecordNumberChange}
+                  onBlur={handleBlur('recordNumber')}
+                  error={showError('recordNumber')}
                   helperText={
                     isOldRecord && showError('recordNumber')
                       ? errors.recordNumber
@@ -694,7 +726,7 @@ function BaptismRecordFormDialog({
                   }
                   fullWidth
                   required={isOldRecord}
-                  disabled={saving || isEdit}
+                  disabled={saving}
                   inputMode="numeric"
                   sx={
                     isEdit
@@ -707,13 +739,13 @@ function BaptismRecordFormDialog({
                   }
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: isEdit ? 4 : 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
                   label="Record Year"
                   value={form.recordYear}
-                  onChange={isOldRecord ? handleRecordYearChange : undefined}
-                  onBlur={isOldRecord ? handleBlur('recordYear') : undefined}
-                  error={isOldRecord && showError('recordYear')}
+                  onChange={handleRecordYearChange}
+                  onBlur={handleBlur('recordYear')}
+                  error={showError('recordYear')}
                   helperText={
                     isOldRecord && showError('recordYear')
                       ? errors.recordYear
@@ -723,7 +755,7 @@ function BaptismRecordFormDialog({
                   }
                   fullWidth
                   required={isOldRecord}
-                  disabled={saving || isEdit}
+                  disabled={saving}
                   inputMode="numeric"
                   sx={
                     isEdit
@@ -736,27 +768,15 @@ function BaptismRecordFormDialog({
                   }
                 />
               </Grid>
-              {isEdit && (
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <FormControl fullWidth disabled={saving}>
-                    <InputLabel id="baptism-status-label">Status</InputLabel>
-                    <Select
-                      labelId="baptism-status-label"
-                      label="Status"
-                      value={form.status}
-                      onChange={handleChange('status')}
-                      onBlur={handleBlur('status')}
-                    >
-                      {RECORD_STATUS_OPTIONS.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    <FormHelperText> </FormHelperText>
-                  </FormControl>
-                </Grid>
-              )}
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField label="Book No." value={form.bookNumber} onChange={handleBookNumberChange} onBlur={handleBlur('bookNumber')} error={showError('bookNumber')} helperText={showError('bookNumber') ? errors.bookNumber : 'Roman numeral'} fullWidth disabled={saving} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField label="Line No." value={form.lineNumber ? String(form.lineNumber).padStart(2, '0') : ''} onChange={handleRegistryNumberChange('lineNumber')} onBlur={handleBlur('lineNumber')} error={showError('lineNumber')} helperText={showError('lineNumber') ? errors.lineNumber : '2-digit format'} fullWidth inputMode="numeric" disabled={saving} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField label="Page No." value={form.pageNumber ? String(form.pageNumber).padStart(3, '0') : ''} onChange={handleRegistryNumberChange('pageNumber')} onBlur={handleBlur('pageNumber')} error={showError('pageNumber')} helperText={showError('pageNumber') ? errors.pageNumber : '3-digit format'} fullWidth inputMode="numeric" disabled={saving} />
+              </Grid>
             </FormSection>
           )}
 
@@ -797,18 +817,6 @@ function BaptismRecordFormDialog({
                 slotProps={{
                   inputLabel: { shrink: true },
                 }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TimeSelect
-                id="baptism-time"
-                value={form.time}
-                onChange={(value) =>
-                  setForm((prev) => ({ ...prev, time: value }))
-                }
-                onBlur={handleBlur('time')}
-                helperText=" "
-                disabled={saving}
               />
             </Grid>
           </FormSection>
@@ -1045,25 +1053,9 @@ function BaptismRecordFormDialog({
                           />
                         </Grid>
                       ))}
-                      <GenderSelect
-                        label="Gender"
-                        value={godparent.gender}
-                        onChange={(value) =>
-                          handleGodparentChange(godparent.id, 'gender', value)
-                        }
-                        onBlur={() =>
-                          handleGodparentBlur(godparent.id, 'gender')
-                        }
-                        error={showGodparentFieldError(godparent.id, 'gender')}
-                        helperText={
-                          showGodparentFieldError(godparent.id, 'gender')
-                            ? getGodparentFieldError(godparent.id, 'gender')
-                            : ' '
-                        }
-                        required
-                        disabled={saving}
-                        idPrefix={`godparent-gender-${godparent.id}`}
-                      />
+                      <Grid size={{ xs: 12 }}>
+                        <TextField label="Residence" value={godparent.residence} onChange={(event) => handleGodparentChange(godparent.id, 'residence', event.target.value)} onBlur={() => handleGodparentBlur(godparent.id, 'residence')} fullWidth disabled={saving} helperText=" " />
+                      </Grid>
                     </Grid>
 
                     <Typography
@@ -1078,7 +1070,7 @@ function BaptismRecordFormDialog({
                         lastName: godparent.lastName,
                         suffix: godparent.suffix,
                       })}
-                      {godparent.gender ? ` (${godparent.gender})` : ''}
+                      {godparent.residence ? ` — ${godparent.residence}` : ''}
                     </Typography>
                   </Box>
                 ))}
@@ -1148,6 +1140,10 @@ function BaptismRecordFormDialog({
                 setForm((prev) => ({ ...prev, requirements: next }))
               }
               disabled={saving}
+              registryNumber={form.birthCertificateRegistryNumber}
+              onRegistryNumberChange={(value) =>
+                setForm((prev) => ({ ...prev, birthCertificateRegistryNumber: value }))
+              }
             />
           </FormSection>
 
