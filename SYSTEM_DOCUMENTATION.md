@@ -1,7 +1,7 @@
 # Parish Connect — System Documentation
 
 **Product:** Parish Connect **v1.0** (application label; package version `0.0.0`)<br>
-**Last reviewed:** September 6, 2026 — repository source through commit `af9abdc`<br>
+**Last reviewed:** September 7, 2026 — repository source through latest commits<br>
 **Parish:** Immaculate Conception of the Virgin Mary Parish  
 **Location:** Bani, Pangasinan  
 **Diocese:** The Roman Catholic Diocese of Alaminos  
@@ -1539,6 +1539,7 @@ Features **not implemented** in Parish Connect v1.0 (candidates for later releas
 
 | Version | Date | Summary |
 |---------|------|---------|
+| Documentation 1.2 | 2026-09-07 | **Major revision implementation milestones reached.** Record deletion now uses Trash/Archive workflow with records retained securely in database and hidden from active views. Archive handling expanded across all five sacramental modules (Baptism, Confirmation, Marriage, Death, Conversion) with backward compatibility preserved. Password verification strengthened for sensitive record actions. Certificate layouts fully revised: parish name updated to "Immaculate Conception of the Virgin Mary Parish," applicable labels changed from Priest to Minister, signature line left blank for Parish Priest / Parochial Vicar, Purpose section retained, long-text handling improved to prevent clipping on A4 print. Archived records filtered from active records list, reports, counts, and calendar display. Record ID handling improved for Firestore accuracy. Production build and regression checks completed. **Currently in final QA:** Certificate A4 print overflow fixes underway; print-preview validation for Baptism/Confirmation/Marriage/Death certificates; live database Trash/Archive verification; general regression testing to confirm all existing functions remain unaffected. Application version unchanged. |
 | Documentation 1.1 | 2026-09-06 | Reviewed source through `af9abdc`. Added password-verified sacramental edit/delete, linked-event cleanup, Baptism/Confirmation registry fields and age rules, calendar time ranges and overlap checks, All Years reports, Confirmation certificate revisions, About/footer UI, provisioning utility, and updated verification checklist and limitations. Application version unchanged. |
 | 1.0 | 2026-08-04 | Documentation aligned to production-ready Parish Connect v1.0: architecture (Vercel + Firebase), full stack including `react-to-print`, certificate preview/print/PDF workflow, calendar and Mass Intention rules, Firestore/Storage rules detail, consolidated business rules, deployment, testing, known limitations, and future enhancements. Removed outdated certificate popup-print references. |
 

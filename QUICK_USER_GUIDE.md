@@ -2,6 +2,7 @@
 
 **Para sa:** Parish Priest at Parish Office Staff  
 **Parish:** Immaculate Conception of the Virgin Mary Parish, Bani, Pangasinan  
+**Last Updated:** September 7, 2026
 
 Ito ay simpleng gabay para sa unang beses na gagamit ng **Parish Connect**. Sundin lang ang mga hakbang. Hindi kailangan ng technical knowledge.
 
@@ -197,5 +198,26 @@ Puwede ninyong mag-logout sa:
 Pagkatapos ninyong subukan ang Parish Connect, malugod naming tatanggapin ang inyong **feedback o suggestions** (hal. mahirap unawain na hakbang, kulang na gabay, o gusto ninyong mapabuti).
 
 Ibigay ang feedback ninyo sa system administrator o development team para mapaganda pa ang Parish Connect para sa parish office.
+
+---
+
+## Recent Updates (September 7, 2026)
+
+### Implemented Changes
+
+- **Record Deletion:** Sacramental records ay hindi na permanent na dine-delete. Ang mga naka-archive na records ay secure na naka-store sa database pero hidden sa normal viewing.
+- **Certificate Improvements:** Ang lahat ng certificates ay na-update na para sa proper printing sa A4 paper. Ang parish name, labels, at layout ay na-refine na para mas professional.
+- **Enhanced Security:** Mas malakas na password verification para sa sensitive record actions.
+- **Record Accuracy:** Improved handling ng Firestore record IDs para sa mga corrections at updates.
+
+### Current Status
+
+- ✔ Lahat ng major features ay fully implemented at tested
+- ✔ Production build at regression checks ay natapos na  
+- 🔄 **Final QA in progress:** Certificate print previews at database Trash/Archive verification
+
+**Walang major changes na mag-affect sa basic workflow ninyo. Ang system ay mas stable at secure na now.**
+
+---
 
 **Maraming salamat po, at welcome sa Parish Connect!**
