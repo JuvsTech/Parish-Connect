@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -28,7 +27,7 @@ import {
   normalizeSacramentRequirements,
 } from '../constants/sacramentRequirements'
 import { normalizeGender } from '../constants/gender'
-import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
+import { syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for confirmation documents.
@@ -338,14 +337,20 @@ export function mapConfirmationDocToUi(docData = {}) {
  * @returns {Promise<object[]>}
  */
 export async function getConfirmationRecords() {
+  const records = await loadConfirmationRecords()
+  return records.filter((record) => record.archived !== true)
+}
+
+// Include retained records internally so registry numbers are never reused.
+async function loadConfirmationRecords() {
   try {
     const snapshot = await getDocs(confirmationCollectionRef)
 
     return snapshot.docs
       .map((docSnap) =>
         mapConfirmationDocToUi({
-          id: docSnap.id,
           ...docSnap.data(),
+          id: docSnap.id,
         }),
       )
       .sort((a, b) => {
@@ -373,11 +378,11 @@ export async function getConfirmationRecordById(id) {
     }
 
     const snapshot = await getDoc(doc(db, COLLECTIONS.CONFIRMATION, id))
-    if (!snapshot.exists()) return null
+    if (!snapshot.exists() || snapshot.data().archived === true) return null
 
     return mapConfirmationDocToUi({
-      id: snapshot.id,
       ...snapshot.data(),
+      id: snapshot.id,
     })
   } catch (error) {
     const message =
@@ -447,7 +452,7 @@ export async function createConfirmationRecord(data) {
     } else {
       // Calendar / new records — auto-number for the current calendar year.
       const currentYear = new Date().getFullYear()
-      existingForNumbering = await getConfirmationRecords()
+      existingForNumbering = await loadConfirmationRecords()
       const next = getNextConfirmationRecordParts(
         existingForNumbering,
         currentYear,
@@ -593,9 +598,8 @@ export async function updateConfirmationRecord(id, data) {
   }
 }
 
-export async function deleteConfirmationRecord(id) {
+export async function archiveConfirmationRecord(id) {
   if (!id) throw new Error('Confirmation record id is required.')
-  await deleteDoc(doc(db, COLLECTIONS.CONFIRMATION, id))
-  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.CONFIRMATION) } catch (error) { console.error('Failed to delete linked confirmation event:', error) }
+  await updateDoc(doc(db, COLLECTIONS.CONFIRMATION, id), { archived: true, archivedAt: serverTimestamp() })
   return true
 }

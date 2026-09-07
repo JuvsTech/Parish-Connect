@@ -1,6 +1,8 @@
 import {
   collection,
   getCountFromServer,
+  query,
+  where,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { COLLECTIONS, MESSAGES } from '../constants'
@@ -8,7 +10,9 @@ import { COLLECTIONS, MESSAGES } from '../constants'
 async function countRecords(collectionName) {
   try {
     const snapshot = await getCountFromServer(collection(db, collectionName))
-    return snapshot.data().count || 0
+    if (collectionName === COLLECTIONS.MASS_INTENTIONS) return snapshot.data().count || 0
+    const archived = await getCountFromServer(query(collection(db, collectionName), where('archived', '==', true)))
+    return (snapshot.data().count || 0) - (archived.data().count || 0)
   } catch {
     return 0
   }

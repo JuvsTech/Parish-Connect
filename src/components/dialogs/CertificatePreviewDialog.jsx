@@ -11,6 +11,7 @@ import {
   DialogTitle,
   Stack,
   Typography,
+  TextField,
 } from '@mui/material'
 import { MARIAN_BLUE } from '../../theme/parishTheme'
 import BaptismCertificate from '../certificates/BaptismCertificate'
@@ -85,9 +86,28 @@ export default function CertificatePreviewDialog({
 
   const handlePrint = useReactToPrint({
     contentRef: certificateRef,
+    bodyClass: 'pc-certificate-print-document',
     documentTitle: data?.title || 'Certificate',
     onBeforePrint: async () => {
       setError('')
+    },
+    print: async (iframe) => {
+      const page = iframe.contentDocument.querySelector('[data-certificate-page]')
+      if (page) {
+        // Measure the clone with the same geometry it will use during print.
+        page.setAttribute('data-print-measuring', '')
+        await iframe.contentDocument.fonts?.ready
+        const pageWidth = page.getBoundingClientRect().width
+        const pageHeight = Math.max(page.getBoundingClientRect().height, page.scrollHeight)
+        const sheet = page.closest('.pc-certificate-print-sheet').getBoundingClientRect()
+        // Fit the measured sheet, allowing half a CSS pixel for pagination rounding.
+        const scale = Math.min(1, sheet.width / pageWidth, (sheet.height - 0.5) / pageHeight)
+        page.style.setProperty('--cert-print-scale', scale)
+        page.style.setProperty('--cert-print-height', `${pageHeight}px`)
+        page.removeAttribute('data-print-measuring')
+      }
+      iframe.contentWindow.focus()
+      iframe.contentWindow.print()
     },
     onPrintError: (_errorLocation, printError) => {
       setError(
@@ -137,6 +157,15 @@ export default function CertificatePreviewDialog({
         Certificate Preview
       </DialogTitle>
 
+      {data && !loading && (
+        <TextField
+          label="Purpose"
+          value={data.purpose || ''}
+          onChange={(event) => setData((current) => ({ ...current, purpose: event.target.value }))}
+          multiline
+          sx={{ mx: 3, mb: 2 }}
+        />
+      )}
       <DialogContent
         dividers
         sx={{
@@ -177,6 +206,7 @@ export default function CertificatePreviewDialog({
           >
             <Box
               ref={certificateRef}
+              className="pc-certificate-print-sheet"
               sx={{
                 boxShadow: '0 8px 28px rgba(16, 24, 40, 0.12)',
                 bgcolor: '#fff',

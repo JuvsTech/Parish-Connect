@@ -58,18 +58,12 @@ export function CertificateIssuedLine({ dayOrdinal, monthYear }) {
   )
 }
 
-export function CertificateSignature({ ministerName, role = 'Parish Priest', blankName = false }) {
+export function CertificateSignature({ role = 'Parish Priest' }) {
   return (
     <div className="pc-certificate-signature">
       <div className="pc-certificate-signature-block">
         <div className="pc-certificate-signature-space" aria-hidden="true" />
         <div className="pc-certificate-signature-line" />
-        <p className="pc-certificate-signature-name">
-          {!blankName && <>REV. FR. </>}
-          <span className="pc-certificate-signature-blank">
-            {ministerName || '______________________'}
-          </span>
-        </p>
         <p className="pc-certificate-signature-role">{role}</p>
       </div>
     </div>

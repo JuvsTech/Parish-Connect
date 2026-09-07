@@ -82,6 +82,10 @@ export default function DeathCertificate({ data }) {
         </CertificateMetaRow>
       </section>
 
+      <CertificateMetaRow label="Purpose">
+        {data.purpose || '____________________________'}
+      </CertificateMetaRow>
+
       <CertificateRecordCard
         recordNumber={data.recordNumber}
         dateIssued={data.dateIssued}
@@ -89,8 +93,7 @@ export default function DeathCertificate({ data }) {
 
       <footer className="pc-certificate-footer">
         <CertificateAttestation>
-          In witness thereof I affix my signature for this Parish of Immaculate
-          Conception.
+          In witness thereof I affix my signature for {data.recordParishName}.
           <br />
           <span className="pc-certificate-attestation-parish">
             Official Death Record maintained by {data.recordParishName}.

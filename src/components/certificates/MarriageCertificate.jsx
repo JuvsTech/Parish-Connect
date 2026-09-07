@@ -83,7 +83,7 @@ export default function MarriageCertificate({ data }) {
         <CertificateMetaRow label="Place">
           {data.marriagePlace || '—'}
         </CertificateMetaRow>
-        <CertificateMetaRow label="Priest">
+        <CertificateMetaRow label="Minister">
           {data.ministerName
             ? `Rev. Fr. ${data.ministerName}`
             : 'Rev. Fr. —'}
@@ -92,6 +92,10 @@ export default function MarriageCertificate({ data }) {
           {witnesses.length ? witnesses.join(' · ') : '—'}
         </CertificateMetaRow>
       </section>
+
+      <CertificateMetaRow label="Purpose">
+        {data.purpose || '____________________________'}
+      </CertificateMetaRow>
 
       <CertificateRecordCard
         recordNumber={data.recordNumber}

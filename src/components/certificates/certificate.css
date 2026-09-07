@@ -473,13 +473,45 @@
 
 /* ---------- Print ---------- */
 
-@media print {
+/* Apply the print geometry in the isolated iframe before measuring it. */
+@media print, screen {
   @page {
     size: A4 portrait;
     margin: 0;
   }
 
-  .pc-certificate-page {
+  body.pc-certificate-print-document {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    background: #fff;
+  }
+
+  /* Only this sheet participates in pagination; reserve 1mm for rounding. */
+  body.pc-certificate-print-document .pc-certificate-print-sheet {
+    box-sizing: border-box;
+    position: relative;
+    width: 210mm;
+    height: 296mm;
+    min-height: 0;
+    margin: 0 auto;
+    padding: 0;
+    border: 0;
+    box-shadow: none !important;
+    background: transparent !important;
+    break-inside: avoid;
+    contain: size layout paint;
+  }
+
+  /* Scale the whole certificate inside the sheet; never repeat it per page. */
+  body.pc-certificate-print-document .pc-certificate-page {
+    box-sizing: border-box;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) scale(var(--cert-print-scale, 1));
+    transform-origin: top center;
+    height: var(--cert-print-height, auto);
     width: 210mm;
     min-height: 297mm;
     margin: 0;
@@ -487,7 +519,18 @@
     box-shadow: none;
   }
 
-  .pc-certificate-inner {
+  body.pc-certificate-print-document .pc-certificate-page[data-print-measuring] {
+    position: relative;
+    left: auto;
+    transform: none;
+    height: auto;
+  }
+
+  body.pc-certificate-print-document .pc-certificate-inner {
     min-height: calc(297mm - 24mm);
   }
 }
+
+/* Keep long certificate values within the existing page frame. */
+.pc-certificate-body { overflow-wrap: anywhere; }
+.pc-certificate-meta-value { min-width: 0; }

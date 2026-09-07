@@ -172,7 +172,33 @@ export async function getEvents() {
     )
     const snapshot = await getDocs(eventsQuery)
 
+    // Retain linked events, hiding those whose sacramental record is archived.
+    const sourceCollections = {
+      [EVENT_SOURCES.BAPTISM]: COLLECTIONS.BAPTISM,
+      [EVENT_SOURCES.CONFIRMATION]: COLLECTIONS.CONFIRMATION,
+      [EVENT_SOURCES.MARRIAGE]: COLLECTIONS.MARRIAGE,
+      [EVENT_SOURCES.DEATH]: COLLECTIONS.DEATH,
+      [EVENT_SOURCES.CONVERSION]: COLLECTIONS.CONVERSION,
+    }
+    const parents = new Map()
+    for (const event of snapshot.docs) {
+      const { source, relatedRecordId } = event.data()
+      if (sourceCollections[source] && relatedRecordId) {
+        const key = source + '/' + relatedRecordId
+        if (!parents.has(key)) parents.set(key, getDoc(doc(db, sourceCollections[source], relatedRecordId)))
+      }
+    }
+    const archivedParents = new Set()
+    await Promise.all([...parents].map(async ([key, pending]) => {
+      const parent = await pending
+      if (parent.exists() && parent.data().archived === true) archivedParents.add(key)
+    }))
+
     return snapshot.docs
+      .filter((event) => {
+        const { source, relatedRecordId } = event.data()
+        return !archivedParents.has(source + '/' + relatedRecordId)
+      })
       .map((docSnap) =>
         mapEventDocToUi({
           id: docSnap.id,

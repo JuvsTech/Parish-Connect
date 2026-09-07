@@ -47,7 +47,7 @@ export default function BaptismCertificate({ data }) {
             value: sacramentPhrase || '—',
           },
           {
-            label: data.ministerLabel || 'Priest',
+            label: data.ministerLabel || 'Minister',
             value: data.ministerName
               ? `Reverend Father ${data.ministerName}`
               : 'Reverend Father —',
@@ -129,6 +129,10 @@ export default function BaptismCertificate({ data }) {
           </CertificateMetaRow>
         ))}
       </section>
+
+      <CertificateMetaRow label="Purpose">
+        {data.purpose || '____________________________'}
+      </CertificateMetaRow>
 
       <CertificateRecordCard
         recordNumber={data.recordNumber}

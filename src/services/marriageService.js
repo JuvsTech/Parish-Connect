@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -27,7 +26,7 @@ import { getNextMarriageRecordParts } from '../utils/recordNumber'
 import { toProperCase } from '../utils/textFormatter'
 import { normalizePlace } from '../utils/philippinePlaces'
 import { createAuditLog } from './auditLogService'
-import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
+import { syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for marriage documents.
@@ -328,14 +327,20 @@ export function mapMarriageDocToUi(docData = {}) {
 }
 
 export async function getMarriageRecords() {
+  const records = await loadMarriageRecords()
+  return records.filter((record) => record.archived !== true)
+}
+
+// Include retained records internally so registry numbers are never reused.
+async function loadMarriageRecords() {
   try {
     const snapshot = await getDocs(marriageCollectionRef)
 
     return snapshot.docs
       .map((docSnap) =>
         mapMarriageDocToUi({
-          id: docSnap.id,
           ...docSnap.data(),
+          id: docSnap.id,
         }),
       )
       .sort((a, b) => {
@@ -355,11 +360,11 @@ export async function getMarriageRecordById(id) {
     }
 
     const snapshot = await getDoc(doc(db, COLLECTIONS.MARRIAGE, id))
-    if (!snapshot.exists()) return null
+    if (!snapshot.exists() || snapshot.data().archived === true) return null
 
     return mapMarriageDocToUi({
-      id: snapshot.id,
       ...snapshot.data(),
+      id: snapshot.id,
     })
   } catch (error) {
     if (
@@ -453,7 +458,7 @@ export async function createMarriageRecord(data, options = {}) {
       normalized.recordNumber = recordNumber
     } else {
       const currentYear = new Date().getFullYear()
-      existingForNumbering = await getMarriageRecords()
+      existingForNumbering = await loadMarriageRecords()
       const next = getNextMarriageRecordParts(existingForNumbering, currentYear)
       normalized.recordYear = next.recordYear
       normalized.recordNumber = next.recordNumber
@@ -585,9 +590,8 @@ export async function updateMarriageRecord(id, data, options = {}) {
   }
 }
 
-export async function deleteMarriageRecord(id) {
+export async function archiveMarriageRecord(id) {
   if (!id) throw new Error(MESSAGES.ERROR.MARRIAGE_UPDATE)
-  await deleteDoc(doc(db, COLLECTIONS.MARRIAGE, id))
-  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.MARRIAGE) } catch (error) { console.error('Failed to delete linked marriage event:', error) }
+  await updateDoc(doc(db, COLLECTIONS.MARRIAGE, id), { archived: true, archivedAt: serverTimestamp() })
   return true
 }

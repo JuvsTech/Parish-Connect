@@ -13,14 +13,14 @@ export const CERTIFICATE_PARISH_ADDRESS = '2407 Bani, Pangasinan'
 
 /** Attestation parish name used across official DOCX templates. */
 export const CERTIFICATE_RECORD_PARISH =
-  'Our Lady of the Immaculate Conception Parish'
+  CERTIFICATE_PARISH_NAME
 
 /** @deprecated Use CERTIFICATE_RECORD_PARISH */
 export const CERTIFICATE_BAPTISM_RECORD_PARISH = CERTIFICATE_RECORD_PARISH
 
 /** Confirmation DOCX: parish church where confirmation was received. */
 export const CERTIFICATE_CONFIRMATION_PARISH_CHURCH =
-  'Our Lady of the Immaculate Conception'
+  CERTIFICATE_PARISH_NAME
 
 export const CERTIFICATE_TYPES = {
   BAPTISM: 'baptism',

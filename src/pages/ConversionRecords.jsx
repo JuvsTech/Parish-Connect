@@ -53,7 +53,7 @@ import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
 import {
   createConversionRecord,
-  deleteConversionRecord,
+  archiveConversionRecord,
   getConversionRecords,
   updateConversionRecord,
 } from '../services/conversionService'
@@ -557,7 +557,7 @@ export default function ConversionRecords() {
   }
   function handleOpenDelete(record) { setSelectedRecord(record); setDeleteVerificationOpen(true) }
   function handleCancelDeleteVerification() { if (!saving) { setDeleteVerificationOpen(false); setSelectedRecord(null) } }
-  async function handleDeleteVerified() { setSaving(true); try { await deleteConversionRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Conversion record deleted successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to delete conversion record.', 'error') } finally { setSaving(false) } }
+  async function handleDeleteVerified() { setSaving(true); try { await archiveConversionRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Conversion record moved to Trash successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to move to Trash: conversion record.', 'error') } finally { setSaving(false) } }
 
   function handleCloseForm() {
     if (saving) return
@@ -950,7 +950,7 @@ export default function ConversionRecords() {
                             <VisibilityOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete"><IconButton size="small" aria-label="Delete conversion record" onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
+                        <Tooltip title="Trash"><IconButton size="small" aria-label="Delete conversion record" onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
@@ -1016,7 +1016,7 @@ export default function ConversionRecords() {
         onClose={handleCancelEditVerification}
         onVerified={handleEditVerified}
       />
-      <PasswordVerificationDialog open={deleteVerificationOpen} title="Delete Conversion Record" description="Permanently delete this conversion record and its linked schedule event? Enter your current password to confirm." confirmLabel="Verify and Delete" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
+      <PasswordVerificationDialog open={deleteVerificationOpen} title="Move Conversion Record to Trash" description={`Move ${([selectedRecord?.convertDisplayName].map((name) => String(name ?? '').trim()).filter((name) => name && name !== '\u2014').join(' and ') || 'this conversion record')} to Trash? Enter your current password to confirm.`} confirmLabel="Verify and Move to Trash" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
 
       <Snackbar
         open={snackbar.open}

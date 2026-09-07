@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -23,7 +22,7 @@ import {
   normalizeSacramentRequirements,
 } from '../constants/sacramentRequirements'
 import { normalizeGender } from '../constants/gender'
-import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
+import { syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for death documents.
@@ -307,14 +306,20 @@ export function mapDeathDocToUi(docData = {}) {
  * @returns {Promise<object[]>}
  */
 export async function getDeathRecords() {
+  const records = await loadDeathRecords()
+  return records.filter((record) => record.archived !== true)
+}
+
+// Include retained records internally so registry numbers are never reused.
+async function loadDeathRecords() {
   try {
     const snapshot = await getDocs(deathCollectionRef)
 
     return snapshot.docs
       .map((docSnap) =>
         mapDeathDocToUi({
-          id: docSnap.id,
           ...docSnap.data(),
+          id: docSnap.id,
         }),
       )
       .sort((a, b) => {
@@ -340,11 +345,11 @@ export async function getDeathRecordById(id) {
     }
 
     const snapshot = await getDoc(doc(db, COLLECTIONS.DEATH, id))
-    if (!snapshot.exists()) return null
+    if (!snapshot.exists() || snapshot.data().archived === true) return null
 
     return mapDeathDocToUi({
-      id: snapshot.id,
       ...snapshot.data(),
+      id: snapshot.id,
     })
   } catch (error) {
     if (
@@ -432,7 +437,7 @@ export async function createDeathRecord(data, options = {}) {
       normalized.recordNumber = recordNumber
     } else {
       const currentYear = new Date().getFullYear()
-      existingForNumbering = await getDeathRecords()
+      existingForNumbering = await loadDeathRecords()
       const next = getNextDeathRecordParts(existingForNumbering, currentYear)
       normalized.recordYear = next.recordYear
       normalized.recordNumber = next.recordNumber
@@ -569,9 +574,8 @@ export async function updateDeathRecord(id, data, options = {}) {
   }
 }
 
-export async function deleteDeathRecord(id) {
+export async function archiveDeathRecord(id) {
   if (!id) throw new Error(MESSAGES.ERROR.DEATH_UPDATE)
-  await deleteDoc(doc(db, COLLECTIONS.DEATH, id))
-  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.DEATH) } catch (error) { console.error('Failed to delete linked death event:', error) }
+  await updateDoc(doc(db, COLLECTIONS.DEATH, id), { archived: true, archivedAt: serverTimestamp() })
   return true
 }

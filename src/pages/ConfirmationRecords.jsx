@@ -53,7 +53,7 @@ import {
 import { displayValue } from '../utils/displayValue'
 import {
   createConfirmationRecord,
-  deleteConfirmationRecord,
+  archiveConfirmationRecord,
   getConfirmationRecords,
   updateConfirmationRecord,
 } from '../services/confirmationService'
@@ -602,7 +602,7 @@ export default function ConfirmationRecords() {
   }
   function handleOpenDelete(record) { setSelectedRecord(record); setDeleteVerificationOpen(true) }
   function handleCancelDeleteVerification() { if (!saving) { setDeleteVerificationOpen(false); setSelectedRecord(null) } }
-  async function handleDeleteVerified() { setSaving(true); try { await deleteConfirmationRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Confirmation record deleted successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to delete confirmation record.', 'error') } finally { setSaving(false) } }
+  async function handleDeleteVerified() { setSaving(true); try { await archiveConfirmationRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Confirmation record moved to Trash successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to move to Trash: confirmation record.', 'error') } finally { setSaving(false) } }
 
   function handleCloseForm() {
     if (saving) return
@@ -973,7 +973,7 @@ export default function ConfirmationRecords() {
                             <VisibilityOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete"><IconButton size="small" aria-label={`Delete ${record.confirmandDisplayName}`} onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
+                        <Tooltip title="Trash"><IconButton size="small" aria-label={`Trash ${record.confirmandDisplayName}`} onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
@@ -1039,7 +1039,7 @@ export default function ConfirmationRecords() {
         onClose={handleCancelEditVerification}
         onVerified={handleEditVerified}
       />
-      <PasswordVerificationDialog open={deleteVerificationOpen} title="Delete Confirmation Record" description="Permanently delete this confirmation record and its linked schedule event? Enter your current password to confirm." confirmLabel="Verify and Delete" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
+      <PasswordVerificationDialog open={deleteVerificationOpen} title="Move Confirmation Record to Trash" description={`Move ${([selectedRecord?.confirmandDisplayName].map((name) => String(name ?? '').trim()).filter((name) => name && name !== '\u2014').join(' and ') || 'this confirmation record')} to Trash? Enter your current password to confirm.`} confirmLabel="Verify and Move to Trash" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
 
       <Snackbar
         open={snackbar.open}

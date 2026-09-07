@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -25,7 +24,7 @@ import {
   normalizeSacramentRequirements,
 } from '../constants/sacramentRequirements'
 import { normalizeGender } from '../constants/gender'
-import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
+import { syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for baptism documents.
@@ -300,6 +299,12 @@ export function mapBaptismDocToUi(docData = {}) {
  * @returns {Promise<object[]>}
  */
 export async function getBaptismRecords() {
+  const records = await loadBaptismRecords()
+  return records.filter((record) => record.archived !== true)
+}
+
+// Include retained records internally so registry numbers are never reused.
+async function loadBaptismRecords() {
   try {
     // Avoid orderBy(year)+orderBy(number) — that combo needs a composite index.
     const snapshot = await getDocs(baptismCollectionRef)
@@ -308,8 +313,8 @@ export async function getBaptismRecords() {
       .map((docSnap) => {
         const data = docSnap.data()
         return mapBaptismDocToUi({
-          id: docSnap.id,
           ...data,
+          id: docSnap.id,
           status: normalizeRecordStatus(data.status),
         })
       })
@@ -338,11 +343,11 @@ export async function getBaptismRecord(id) {
     }
 
     const snapshot = await getDoc(doc(db, COLLECTIONS.BAPTISM, id))
-    if (!snapshot.exists()) return null
+    if (!snapshot.exists() || snapshot.data().archived === true) return null
 
     return mapBaptismDocToUi({
-      id: snapshot.id,
       ...snapshot.data(),
+      id: snapshot.id,
     })
   } catch (error) {
     const message =
@@ -432,7 +437,7 @@ export async function createBaptismRecord(data, options = {}) {
     } else {
       // Calendar / new records — auto-number for the current calendar year.
       const currentYear = new Date().getFullYear()
-      const existing = await getBaptismRecords()
+      const existing = await loadBaptismRecords()
       const next = getNextBaptismRecordParts(existing, currentYear)
       normalized.recordYear = next.recordYear
       normalized.recordNumber = next.recordNumber
@@ -590,9 +595,8 @@ export async function updateBaptismRecord(id, data, options = {}) {
   }
 }
 
-export async function deleteBaptismRecord(id) {
+export async function archiveBaptismRecord(id) {
   if (!id) throw new Error('Baptism record id is required.')
-  await deleteDoc(doc(db, COLLECTIONS.BAPTISM, id))
-  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.BAPTISM) } catch (error) { console.error('Failed to delete linked baptism event:', error) }
+  await updateDoc(doc(db, COLLECTIONS.BAPTISM, id), { archived: true, archivedAt: serverTimestamp() })
   return true
 }

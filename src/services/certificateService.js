@@ -160,7 +160,7 @@ export function mapBaptismRecordToCertificate(record, options = {}) {
     detailRows: [
       { label: 'Baptism Date', value: baptismPhrase || '—' },
       {
-        label: 'Priest',
+        label: 'Minister',
         value: ministerName
           ? `Reverend Father ${ministerName}`
           : 'Reverend Father —',
@@ -176,6 +176,7 @@ export function mapBaptismRecordToCertificate(record, options = {}) {
       'This certificate is issued based on the official Baptismal Record maintained by',
     layoutClassName: 'pc-certificate-baptism',
     ...issuedFields(issuedAt),
+    purpose: blank(options.purpose ?? record.purpose),
   }
 }
 
@@ -250,6 +251,7 @@ export function mapConfirmationRecordToCertificate(record, options = {}) {
       'This certificate is issued based on the official Confirmation Record maintained by',
     layoutClassName: 'pc-certificate-confirmation',
     ...issuedFields(issuedAt),
+    purpose: blank(options.purpose ?? record.purpose),
   }
 }
 
@@ -350,7 +352,7 @@ export function mapMarriageRecordToCertificate(record, options = {}) {
       { label: 'Marriage Date', value: marriagePhrase || '—' },
       { label: 'Place of Marriage', value: blank(record.marriagePlace) || '—' },
       {
-        label: 'Priest',
+        label: 'Minister',
         value: ministerName
           ? `Reverend Father ${ministerName}`
           : 'Reverend Father —',
@@ -364,6 +366,7 @@ export function mapMarriageRecordToCertificate(record, options = {}) {
       'This certificate is issued based on the official Marriage Record maintained by',
     layoutClassName: 'pc-certificate-marriage',
     ...issuedFields(issuedAt),
+    purpose: blank(options.purpose ?? record.purpose),
   }
 }
 
@@ -464,7 +467,7 @@ export function mapDeathRecordToCertificate(record, options = {}) {
       { label: 'Place of Burial', value: blank(record.placeOfBurial) || '—' },
       { label: 'Age', value: ageLabel(record.age) || '—' },
       {
-        label: 'Priest',
+        label: 'Minister',
         value: ministerName
           ? `Reverend Father ${ministerName}`
           : 'Reverend Father —',
@@ -474,6 +477,7 @@ export function mapDeathRecordToCertificate(record, options = {}) {
       'This certificate is issued based on the official Death Record maintained by',
     layoutClassName: 'pc-certificate-death',
     ...issuedFields(issuedAt),
+    purpose: blank(options.purpose ?? record.purpose),
   }
 }
 
@@ -549,6 +553,7 @@ export function mapConversionRecordToCertificate(record, options = {}) {
       'This certificate is issued based on the official Conversion Record maintained by',
     layoutClassName: 'pc-certificate-conversion',
     ...issuedFields(issuedAt),
+    purpose: blank(options.purpose ?? record.purpose),
   }
 }
 

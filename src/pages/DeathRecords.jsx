@@ -53,7 +53,7 @@ import RequirementsStatusChip from '../components/RequirementsStatusChip'
 import GenderSelect from '../components/GenderSelect'
 import {
   createDeathRecord,
-  deleteDeathRecord,
+  archiveDeathRecord,
   getDeathRecords,
   updateDeathRecord,
 } from '../services/deathService'
@@ -603,7 +603,7 @@ export default function DeathRecords() {
   }
   function handleOpenDelete(record) { setSelectedRecord(record); setDeleteVerificationOpen(true) }
   function handleCancelDeleteVerification() { if (!saving) { setDeleteVerificationOpen(false); setSelectedRecord(null) } }
-  async function handleDeleteVerified() { setSaving(true); try { await deleteDeathRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Death record deleted successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to delete death record.', 'error') } finally { setSaving(false) } }
+  async function handleDeleteVerified() { setSaving(true); try { await archiveDeathRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Death record moved to Trash successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to move to Trash: death record.', 'error') } finally { setSaving(false) } }
 
   function handleCloseForm() {
     if (saving) return
@@ -1020,7 +1020,7 @@ export default function DeathRecords() {
                             <VisibilityOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete"><IconButton size="small" aria-label="Delete death record" onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
+                        <Tooltip title="Trash"><IconButton size="small" aria-label="Delete death record" onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
@@ -1086,7 +1086,7 @@ export default function DeathRecords() {
         onClose={handleCancelEditVerification}
         onVerified={handleEditVerified}
       />
-      <PasswordVerificationDialog open={deleteVerificationOpen} title="Delete Death Record" description="Permanently delete this death record and its linked schedule event? Enter your current password to confirm." confirmLabel="Verify and Delete" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
+      <PasswordVerificationDialog open={deleteVerificationOpen} title="Move Death Record to Trash" description={`Move ${([selectedRecord?.deceasedDisplayName].map((name) => String(name ?? '').trim()).filter((name) => name && name !== '\u2014').join(' and ') || 'this death record')} to Trash? Enter your current password to confirm.`} confirmLabel="Verify and Move to Trash" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
 
       <Snackbar
         open={snackbar.open}

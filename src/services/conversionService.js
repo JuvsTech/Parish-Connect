@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -22,7 +21,7 @@ import {
   getRequirementsSummary,
   normalizeSacramentRequirements,
 } from '../constants/sacramentRequirements'
-import { deleteEventsByRelatedRecord, syncSacramentalEvent } from './eventService'
+import { syncSacramentalEvent } from './eventService'
 
 /**
  * Firestore collection reference for conversion documents.
@@ -95,10 +94,9 @@ export const CONVERSION_FIELDS = {
   UPDATED_BY: 'updatedBy',
 }
 
-export async function deleteConversionRecord(id) {
+export async function archiveConversionRecord(id) {
   if (!id) throw new Error(MESSAGES.ERROR.CONVERSION_UPDATE)
-  await deleteDoc(doc(db, COLLECTIONS.CONVERSION, id))
-  try { await deleteEventsByRelatedRecord(id, EVENT_SOURCES.CONVERSION) } catch (error) { console.error('Failed to delete linked conversion event:', error) }
+  await updateDoc(doc(db, COLLECTIONS.CONVERSION, id), { archived: true, archivedAt: serverTimestamp() })
   return true
 }
 
@@ -263,14 +261,20 @@ export function mapConversionDocToUi(docData = {}) {
  * @returns {Promise<object[]>}
  */
 export async function getConversionRecords() {
+  const records = await loadConversionRecords()
+  return records.filter((record) => record.archived !== true)
+}
+
+// Include retained records internally so registry numbers are never reused.
+async function loadConversionRecords() {
   try {
     const snapshot = await getDocs(conversionCollectionRef)
 
     return snapshot.docs
       .map((docSnap) =>
         mapConversionDocToUi({
-          id: docSnap.id,
           ...docSnap.data(),
+          id: docSnap.id,
         }),
       )
       .sort((a, b) => {
@@ -296,11 +300,11 @@ export async function getConversionRecordById(id) {
     }
 
     const snapshot = await getDoc(doc(db, COLLECTIONS.CONVERSION, id))
-    if (!snapshot.exists()) return null
+    if (!snapshot.exists() || snapshot.data().archived === true) return null
 
     return mapConversionDocToUi({
-      id: snapshot.id,
       ...snapshot.data(),
+      id: snapshot.id,
     })
   } catch (error) {
     if (
@@ -383,7 +387,7 @@ export async function createConversionRecord(data, options = {}) {
       normalized.recordNumber = recordNumber
     } else {
       const currentYear = new Date().getFullYear()
-      existingForNumbering = await getConversionRecords()
+      existingForNumbering = await loadConversionRecords()
       const next = getNextConversionRecordParts(
         existingForNumbering,
         currentYear,

@@ -83,6 +83,10 @@ export default function ConfirmationCertificate({ data }) {
         </CertificateMetaRow>
       </section>
 
+      <CertificateMetaRow label="Purpose">
+        {data.purpose || '____________________________'}
+      </CertificateMetaRow>
+
       <CertificateRecordCard
         recordNumber={data.recordNumber}
         dateIssued={data.dateIssued}

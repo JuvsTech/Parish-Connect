@@ -52,7 +52,7 @@ import RequirementsChecklist from '../components/RequirementsChecklist'
 import RequirementsStatusChip from '../components/RequirementsStatusChip'
 import {
   createMarriageRecord,
-  deleteMarriageRecord,
+  archiveMarriageRecord,
   getMarriageRecords,
   updateMarriageRecord,
 } from '../services/marriageService'
@@ -656,7 +656,7 @@ export default function MarriageRecords() {
   }
   function handleOpenDelete(record) { setSelectedRecord(record); setDeleteVerificationOpen(true) }
   function handleCancelDeleteVerification() { if (!saving) { setDeleteVerificationOpen(false); setSelectedRecord(null) } }
-  async function handleDeleteVerified() { setSaving(true); try { await deleteMarriageRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Marriage record deleted successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to delete marriage record.', 'error') } finally { setSaving(false) } }
+  async function handleDeleteVerified() { setSaving(true); try { await archiveMarriageRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Marriage record moved to Trash successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to move to Trash: marriage record.', 'error') } finally { setSaving(false) } }
 
   function handleCloseForm() {
     if (saving) return
@@ -1064,7 +1064,7 @@ export default function MarriageRecords() {
                             <VisibilityOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete"><IconButton size="small" aria-label="Delete marriage record" onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
+                        <Tooltip title="Trash"><IconButton size="small" aria-label="Delete marriage record" onClick={() => handleOpenDelete(record)} sx={{ color: 'text.secondary', '&:hover': { color: '#C62828' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
@@ -1130,7 +1130,7 @@ export default function MarriageRecords() {
         onClose={handleCancelEditVerification}
         onVerified={handleEditVerified}
       />
-      <PasswordVerificationDialog open={deleteVerificationOpen} title="Delete Marriage Record" description="Permanently delete this marriage record and its linked schedule event? Enter your current password to confirm." confirmLabel="Verify and Delete" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
+      <PasswordVerificationDialog open={deleteVerificationOpen} title="Move Marriage Record to Trash" description={`Move ${([selectedRecord?.groomDisplayName, selectedRecord?.brideDisplayName].map((name) => String(name ?? '').trim()).filter((name) => name && name !== '\u2014').join(' and ') ? 'the marriage record of ' + ([selectedRecord?.groomDisplayName, selectedRecord?.brideDisplayName].map((name) => String(name ?? '').trim()).filter((name) => name && name !== '\u2014').join(' and ')) : 'this marriage record')} to Trash? Enter your current password to confirm.`} confirmLabel="Verify and Move to Trash" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
 
       <Snackbar
         open={snackbar.open}

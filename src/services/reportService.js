@@ -78,6 +78,7 @@ export async function getReportYears(reportType) {
     const years = new Set()
 
     snapshot.docs.forEach((docSnap) => {
+      if (docSnap.data()?.archived === true) return
       const yearValue = docSnap.data()?.recordYear
       const normalized = Number(yearValue)
       if (Number.isInteger(normalized) && normalized >= 1000) {
@@ -140,6 +141,7 @@ export async function generateSacramentalReport(filters = {}) {
 
     const rows = snapshot.docs
       .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+      .filter((doc) => doc.archived !== true)
       .filter((doc) => matchesMonth(doc[config.dateField], monthIndex))
       .filter((doc) =>
         matchesMinister(doc, config.ministerFields, minister),
