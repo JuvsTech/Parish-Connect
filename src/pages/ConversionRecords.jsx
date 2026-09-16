@@ -557,7 +557,7 @@ export default function ConversionRecords() {
   }
   function handleOpenDelete(record) { setSelectedRecord(record); setDeleteVerificationOpen(true) }
   function handleCancelDeleteVerification() { if (!saving) { setDeleteVerificationOpen(false); setSelectedRecord(null) } }
-  async function handleDeleteVerified() { setSaving(true); try { await archiveConversionRecord(selectedRecord.id); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Conversion record moved to Trash successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to move to Trash: conversion record.', 'error') } finally { setSaving(false) } }
+  async function handleDeleteVerified(reason) { setSaving(true); try { await archiveConversionRecord(selectedRecord.id, reason); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Conversion record moved to Trash successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to move to Trash: conversion record.', 'error') } finally { setSaving(false) } }
 
   function handleCloseForm() {
     if (saving) return
@@ -1016,7 +1016,7 @@ export default function ConversionRecords() {
         onClose={handleCancelEditVerification}
         onVerified={handleEditVerified}
       />
-      <PasswordVerificationDialog open={deleteVerificationOpen} title="Move Conversion Record to Trash" description={`Move ${([selectedRecord?.convertDisplayName].map((name) => String(name ?? '').trim()).filter((name) => name && name !== '\u2014').join(' and ') || 'this conversion record')} to Trash? Enter your current password to confirm.`} confirmLabel="Verify and Move to Trash" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
+      <PasswordVerificationDialog requireReason open={deleteVerificationOpen} title="Move Conversion Record to Trash" description={`Move ${([selectedRecord?.convertDisplayName].map((name) => String(name ?? '').trim()).filter((name) => name && name !== '\u2014').join(' and ') || 'this conversion record')} to Trash? Provide an archive reason and enter your current password to confirm.`} confirmLabel="Verify and Move to Trash" confirmColor="error" onClose={handleCancelDeleteVerification} onVerified={handleDeleteVerified} />
 
       <Snackbar
         open={snackbar.open}

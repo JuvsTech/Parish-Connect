@@ -19,6 +19,7 @@ const ConversionRecords = lazy(() => import('./pages/ConversionRecords'))
 const MassIntentions = lazy(() => import('./pages/MassIntentions'))
 const ManageMinisters = lazy(() => import('./pages/ManageMinisters'))
 const Reports = lazy(() => import('./pages/Reports'))
+const ArchivedRecords = lazy(() => import('./pages/ArchivedRecords'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Unauthorized = lazy(() => import('./pages/Unauthorized'))
 const NotFound = lazy(() => import('./pages/NotFound'))
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
           { path: '/records/marriage', element: <MarriageRecords /> },
           { path: '/records/death', element: <DeathRecords /> },
           { path: '/records/conversion', element: <ConversionRecords /> },
+          { path: '/records/archived', element: <ArchivedRecords /> },
           { path: '/mass-intentions', element: <MassIntentions /> },
           { path: '/ministers', element: <ManageMinisters /> },
           {

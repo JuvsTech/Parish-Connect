@@ -1,3 +1,4 @@
+import { archiveRecord } from './archiveService'
 import {
   addDoc,
   collection,
@@ -595,8 +596,6 @@ export async function updateBaptismRecord(id, data, options = {}) {
   }
 }
 
-export async function archiveBaptismRecord(id) {
-  if (!id) throw new Error('Baptism record id is required.')
-  await updateDoc(doc(db, COLLECTIONS.BAPTISM, id), { archived: true, archivedAt: serverTimestamp() })
-  return true
+export async function archiveBaptismRecord(id, reason) {
+  return archiveRecord(COLLECTIONS.BAPTISM, id, reason)
 }

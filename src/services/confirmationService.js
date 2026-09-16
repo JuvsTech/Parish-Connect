@@ -1,3 +1,4 @@
+import { archiveRecord } from './archiveService'
 import {
   addDoc,
   collection,
@@ -598,8 +599,6 @@ export async function updateConfirmationRecord(id, data) {
   }
 }
 
-export async function archiveConfirmationRecord(id) {
-  if (!id) throw new Error('Confirmation record id is required.')
-  await updateDoc(doc(db, COLLECTIONS.CONFIRMATION, id), { archived: true, archivedAt: serverTimestamp() })
-  return true
+export async function archiveConfirmationRecord(id, reason) {
+  return archiveRecord(COLLECTIONS.CONFIRMATION, id, reason)
 }

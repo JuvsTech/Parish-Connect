@@ -1,3 +1,4 @@
+import { archiveRecord } from './archiveService'
 import {
   addDoc,
   collection,
@@ -574,8 +575,6 @@ export async function updateDeathRecord(id, data, options = {}) {
   }
 }
 
-export async function archiveDeathRecord(id) {
-  if (!id) throw new Error(MESSAGES.ERROR.DEATH_UPDATE)
-  await updateDoc(doc(db, COLLECTIONS.DEATH, id), { archived: true, archivedAt: serverTimestamp() })
-  return true
+export async function archiveDeathRecord(id, reason) {
+  return archiveRecord(COLLECTIONS.DEATH, id, reason)
 }

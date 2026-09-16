@@ -53,7 +53,7 @@ export default function AppFooter({ onAboutClick }) {
             Parish Connect
           </Link>
           {' '}
-          v1.0
+          v1.4
         </Typography>
 
         <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.4 }}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Button,
   Dialog,
@@ -11,6 +11,7 @@ import {
 } from '@mui/material'
 import { verifyCurrentPassword } from '../services/passwordService'
 import { MARIAN_BLUE } from '../theme/parishTheme'
+import { auth } from '../firebase/config'
 
 /**
  * Reusable current-password confirmation for protected record actions.
@@ -21,18 +22,29 @@ export default function PasswordVerificationDialog({
   description = 'Enter your current password to continue.',
   confirmLabel = 'Verify',
   confirmColor = 'primary',
+  requireReason = false,
   onClose,
   onVerified,
 }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [verifying, setVerifying] = useState(false)
+  const [reason, setReason] = useState('')
+  const [reasonError, setReasonError] = useState('')
+  const active = useRef(false)
+
+  useEffect(() => {
+    active.current = open
+    return () => { active.current = false }
+  }, [open])
 
   useEffect(() => {
     if (!open) {
       setPassword('')
       setError('')
       setVerifying(false)
+      setReason('')
+      setReasonError('')
     }
   }, [open])
 
@@ -45,14 +57,20 @@ export default function PasswordVerificationDialog({
 
   async function handleVerify() {
     if (verifying || !password.trim()) return
+    if (requireReason && !reason.trim()) {
+      setReasonError('Archive Reason is required.')
+      return
+    }
 
+    const user = auth.currentUser
     setVerifying(true)
     setError('')
 
     try {
       await verifyCurrentPassword(password)
+      if (!active.current || !user || auth.currentUser !== user) return
       setPassword('')
-      await onVerified?.()
+      await onVerified?.(requireReason ? reason.trim() : undefined)
     } catch (verificationError) {
       setError(
         verificationError instanceof Error
@@ -80,6 +98,15 @@ export default function PasswordVerificationDialog({
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {description}
         </Typography>
+        {requireReason && (
+          <TextField
+            fullWidth required multiline minRows={2}
+            label="Archive Reason" value={reason}
+            onChange={(event) => { setReason(event.target.value); setReasonError('') }}
+            error={Boolean(reasonError)} helperText={reasonError || ' '}
+            disabled={verifying} sx={{ mb: 1 }}
+          />
+        )}
         <TextField
           autoFocus
           fullWidth

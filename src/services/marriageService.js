@@ -1,3 +1,4 @@
+import { archiveRecord } from './archiveService'
 import {
   addDoc,
   collection,
@@ -590,8 +591,6 @@ export async function updateMarriageRecord(id, data, options = {}) {
   }
 }
 
-export async function archiveMarriageRecord(id) {
-  if (!id) throw new Error(MESSAGES.ERROR.MARRIAGE_UPDATE)
-  await updateDoc(doc(db, COLLECTIONS.MARRIAGE, id), { archived: true, archivedAt: serverTimestamp() })
-  return true
+export async function archiveMarriageRecord(id, reason) {
+  return archiveRecord(COLLECTIONS.MARRIAGE, id, reason)
 }

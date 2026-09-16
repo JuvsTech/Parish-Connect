@@ -1,3 +1,4 @@
+import { archiveRecord } from './archiveService'
 import {
   addDoc,
   collection,
@@ -94,10 +95,8 @@ export const CONVERSION_FIELDS = {
   UPDATED_BY: 'updatedBy',
 }
 
-export async function archiveConversionRecord(id) {
-  if (!id) throw new Error(MESSAGES.ERROR.CONVERSION_UPDATE)
-  await updateDoc(doc(db, COLLECTIONS.CONVERSION, id), { archived: true, archivedAt: serverTimestamp() })
-  return true
+export async function archiveConversionRecord(id, reason) {
+  return archiveRecord(COLLECTIONS.CONVERSION, id, reason)
 }
 
 const REQUIRED_FIELDS = [

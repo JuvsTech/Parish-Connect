@@ -34,6 +34,7 @@ import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlin
 import VolunteerActivismOutlinedIcon from '@mui/icons-material/VolunteerActivismOutlined'
 import HowToRegOutlinedIcon from '@mui/icons-material/HowToRegOutlined'
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined'
+import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
@@ -86,6 +87,7 @@ const SACRAMENTAL_ITEMS = [
 
 const PRIMARY_ITEMS = [
   { to: '/', label: 'Dashboard', icon: DashboardOutlinedIcon, end: true },
+  { to: '/records/archived', label: 'Archived Records', icon: ArchiveOutlinedIcon },
   {
     to: '/mass-intentions',
     label: 'Mass Intentions',
