@@ -1,13 +1,13 @@
 # Parish Connect — System Documentation
 
 **Product:** Parish Connect **v1.0** (application label; package version `0.0.0`)<br>
-**Last reviewed:** September 14, 2026 — full audit of current repository source<br>
+**Last reviewed:** September 16, 2026 — source-verified Archive revision and affected documentation<br>
 **Parish:** Immaculate Conception of the Virgin Mary Parish  
 **Location:** Bani, Pangasinan  
 **Diocese:** The Roman Catholic Diocese of Alaminos  
 
 **Document purpose:** Description of the **current repository implementation**, derived from application source code. Intended for thesis panels, parish staff, and future developers. This review does not verify the deployed website, live Firebase configuration, or completed acceptance tests.<br>
-**Source of truth:** Application source code under `src/`, dependency declarations, deployment configuration, and Firebase rules in the repository. All 35 sections and appendices were compared with the current implementation; previous revision claims were checked against executable code.
+**Source of truth:** Application source code under `src/`, dependency declarations, deployment configuration, and Firebase rules in the repository. The September 14 full audit is supplemented by a September 16 review of the implemented Archive revision, test fixtures, and affected sections. Archive descriptions follow executable code rather than earlier proposals.
 
 ---
 
@@ -69,9 +69,9 @@ The application is a **single-page React application** configured for deployment
 
 ### Scope (v1.0)
 
-**In scope (implemented):** authentication and RBAC; Dashboard and calendar; Baptism, Confirmation, Marriage, Death, and Conversion registers; password-verified sacramental editing and Move to Trash; Mass Intentions; Ministers; Reports (preview / print / PDF); Certificate Preview with print and PDF for all five sacraments, including Conversion; user profile and password change; client-side validation; Firestore and Storage security rules in the repository.
+**In scope (implemented):** authentication and RBAC; Dashboard and calendar; Baptism, Confirmation, Marriage, Death, and Conversion registers; password-verified sacramental editing; password-and-reason Move to Trash; password-gated Archived Records with five sacramental tabs and reason-required recovery; Mass Intentions; Ministers; Reports (preview / print / PDF); Certificate Preview with print and PDF for all five sacraments, including Conversion; user profile and password change; client-side validation; Firestore and Storage security rules in the repository.
 
-**Not implemented (see Future Enhancements):** Trash browsing/restoration, QR certificate verification, OCR digitization, AI duplicate detection, native mobile apps, multi-parish tenancy, full audit-log administration UI, and related advanced features.
+**Not implemented (see Future Enhancements):** archive actor tracking and complete archive/recovery history, QR certificate verification, OCR digitization, AI duplicate detection, native mobile apps, multi-parish tenancy, full audit-log administration UI, and related advanced features.
 
 ### Target users
 
@@ -126,7 +126,10 @@ The interface uses a Marian blue parish theme (`#0B3D91` and related accents), M
 | Unsaved changes warnings | ✔ Implemented |
 | Documentary requirements checklists | ✔ Implemented |
 | Password verification before sacramental edit / Move to Trash | ✔ Implemented in all five record pages |
-| Sacramental Trash/Archive retention | ✔ Implemented in all five services; linked events retained and hidden on load |
+| Sacramental Trash/Archive retention | ✔ All five pages require password + Archive Reason; transactional updates retain records and linked events |
+| Archived Records menu/page | ✔ `/records/archived`; password verification before archive queries/display; five sacramental tabs |
+| Recover archived records | ✔ Identity confirmation + required Recovery Reason; preserves archive metadata, status, numbering, and stored events |
+| Archive access lifecycle | ✔ In-memory, account/visit-scoped; refresh, leaving/re-entry, logout, and account change require verification again |
 | Archive exclusion from lists, lookups, reports, years, counts, calendar | ✔ Implemented; legacy records without the archive flag remain visible |
 | Certificate Purpose and A4 print fitting | ✔ Implemented; browser/printer validation is a separate release check |
 | Baptism and Confirmation book / line / page references | ✔ Implemented |
@@ -143,7 +146,7 @@ The interface uses a Marian blue parish theme (`#0B3D91` and related accents), M
 
 | Area | Current state |
 |------|----------------|
-| Trash browsing / restore / purge | No page, restore service, or permanent-purge UI; Move to Trash retains the original document |
+| Archive audit/history and purge | Viewer/recovery implemented; no archive/recovery actor fields, full action history, purge UI, or automatic expiry |
 | Dedicated certificate templates | Runtime uses `BaptismCertificate` for all five types; separate Confirmation/Marriage/Death components are not selected by the preview |
 | Daily / Weekly Mass Intention report periods | Labels exist; only year/month/minister filters are implemented |
 | Forgot-password UI | `resetPassword` service helper exists, but no page/form calls it |
@@ -219,6 +222,7 @@ Parish-Connect/
 │   └── certificate-templates/     # DOCX design references (not runtime exporters)
 ├── public/                        # Static public assets
 ├── scripts/                       # Firebase Admin SDK account provisioning
+├── tests/                         # Isolated archive service and Chrome UI regression tests
 ├── src/
 │   ├── assets/                    # Logos, certificate assets, fonts
 │   ├── components/                # Shared UI, forms, certificates, dialogs
@@ -247,7 +251,7 @@ Parish-Connect/
 └── SYSTEM_DOCUMENTATION.md
 ```
 
-There is **no** top-level `certificate-templates/` folder. Certificate DOCX references live under `docs/certificate-templates/`. There is no Trash/Archive or Audit Logs page. `.env.example`, `.gitignore`, and `.oxlintrc.json` also exist; local `dist/`, `node_modules/`, `.env`, and `secrets/` are ignored artifacts/configuration, not application modules.
+There is **no** top-level `certificate-templates/` folder. Certificate DOCX references live under `docs/certificate-templates/`. The Archive page is `src/pages/ArchivedRecords.jsx`, supported by `src/services/archiveService.js` and `src/components/PasswordVerificationDialog.jsx`. There is no Audit Logs page. `.env.example`, `.gitignore`, and `.oxlintrc.json` also exist; local `dist/`, `node_modules/`, `.env`, and `secrets/` are ignored artifacts/configuration, not application modules.
 
 ---
 
@@ -265,6 +269,7 @@ Defined in `src/App.jsx`. All page components load via `React.lazy` and `Suspens
 | `/records/marriage` | Marriage Records | Admin, Staff |
 | `/records/death` | Death Records | Admin, Staff |
 | `/records/conversion` | Conversion Records | Admin, Staff |
+| `/records/archived` | Archived Records | Admin, Staff; current-password verification before archive queries/display |
 | `/mass-intentions` | Mass Intentions | Admin, Staff |
 | `/ministers` | Manage Ministers | Admin, Staff |
 | `/maintenance/ministers` | Redirect → `/ministers` | Admin, Staff |
@@ -289,6 +294,7 @@ Control who can access Parish Connect and what they can do, using Firebase Authe
 - Role-based access: **Administrator** (`admin`) and **Staff** (`staff`)
 - Firestore role alias: `administrator` is normalized to `admin`
 - Session awareness via `onAuthStateChanged`
+- Current-password verification for sacramental edit, Move to Trash (also requires Archive Reason), and Archived Records access. Recover within the authenticated archive visit requires confirmation + Recovery Reason without another password; see §20 and §28.
 - `lastLogin` updated after the profile is fully loaded
 - Disallowed roles or inactive status redirect to `/unauthorized`. A missing profile/role raises a profile-load error and shows the account-verification Retry screen.
 
@@ -342,7 +348,7 @@ Give parish staff a daily overview of sacramental activity and Mass intentions, 
 
 - Dashboard data is loaded from Firestore through dedicated services (`dashboardService`, event service, sacramental services, Mass intention stats).
 - Sacramental and Mass Intention markers and manual events are stored in `events`. Record create/update attempts to sync linked events after saving; sync failures are logged without rolling back the record.
-- Dashboard and Reports sacramental totals subtract documents with `archived == true` from total counts. Missing archive flags remain included. Count-read failures return zero, so a zero card can also represent a failed request.
+- Dashboard and Reports sacramental totals subtract documents with `archived == true` from total counts. Missing archive flags remain included. Count-read failures return zero, so a zero card can also represent a failed request. Recovery sets `archived: false`, restoring inclusion on the next Dashboard/Reports count load; these screens are not live subscriptions.
 
 ### Validation rules
 
@@ -445,7 +451,7 @@ Sacramental events are excluded from this overlap check. Legacy events with only
 - Sacramental events on the calendar are **read-only projections**; editing happens in the sacramental module or Mass Intentions module.
 - Mass Intentions are typically managed under `/mass-intentions`; they appear on the calendar when synced as events with source `massIntention`.
 - Double-clicking a non-past date with events opens the overview; the separate Add Event action can open the manual form directly.
-- `getEvents()` reads linked parents for the five sacraments and hides events whose parent has `archived === true`. The stored event is retained; a missing parent is not automatically suppressed. These reads occur on load/refresh, not through live Firestore subscriptions.
+- `getEvents()` reads linked parents for the five sacraments and hides events whose parent has `archived === true`. The stored event is retained; a missing parent is not automatically suppressed. These reads occur on load/refresh, not through live Firestore subscriptions. Recovery reveals retained linked events on the next load without recreating, rescheduling, or synchronizing them; independently missing events are not rebuilt.
 
 ---
 
@@ -496,7 +502,7 @@ Encode, search, view, and update baptismal register entries; generate Baptism ce
 - Old-record and edit forms include optional `bookNumber` (Roman numeral), `lineNumber`, and `pageNumber` (positive integers). Line and page displays pad to at least two and three digits respectively. Record number and year can be corrected during editing, subject to duplicate checks.
 - Godparents now capture residence instead of asking for gender. Existing gender values are retained for compatibility.
 - The Birth Certificate checklist includes `birthCertificateRegistryNumber`, defaulting to `N/A` when blank.
-- Edit and **Move to Trash** require the current user's password. Trash retains the source document and linked event; active reads hide them. There is no restore UI; see §20, §28, and §30.
+- Edit requires the current account password. **Move to Trash** requires password + Archive Reason, retaining the source document and linked event. The Baptism tab in password-gated Archived Records supports recovery with identity confirmation + Recovery Reason (section 20).
 - Clearing an existing book/line/page field in the Baptism edit form does not remove it: blank optional values are omitted from the update payload.
 
 ---
@@ -544,7 +550,7 @@ Same pattern as Baptism: list → view/edit historical records; schedule new con
 - The checklist captures the baptismal certificate's book, line, page, and year in `baptismalCertificateBookNumber`, `baptismalCertificateLineNumber`, `baptismalCertificatePageNumber`, and `baptismalCertificateRecordYear`; blank values become `N/A`.
 - The form uses entered age rather than a birth-date input. Existing birth dates are preserved when omitted during updates; new records may have no birth date, leaving that certificate line blank.
 - Record **year** and book/line/page references are editable; the Confirmation record **number** is disabled during editing. Time is supplied when scheduling and preserved on update.
-- Edit and **Move to Trash** require the current user's password, as in the other sacramental modules. Archive fields retain the document and hide it from active reads.
+- Edit requires the current account password. **Move to Trash** requires password + Archive Reason, retaining the source document and linked event. The Confirmation tab in password-gated Archived Records supports recovery with identity confirmation + Recovery Reason (section 20).
 - Confirmation create/update records timestamps but does not populate creator/updater identity in its service.
 
 ---
@@ -596,7 +602,7 @@ List → view / add / edit; schedule new marriages from calendar; generate certi
 
 - Certificate type: **Marriage** — implemented.
 - Civil status options include Single, Widow, Widower, Annulled, Unknown (as defined in marriage option constants).
-- Edit and **Move to Trash** require current-password verification. Trash retains the source and linked event. Record number/year are disabled in the edit form; saved time is preserved.
+- Edit requires current-password verification; **Move to Trash** additionally requires an Archive Reason. Trash retains the source and linked event. The Marriage tab in password-gated Archived Records supports confirmation-and-reason recovery (section 20). Record number/year are disabled in the edit form; saved time is preserved.
 
 ---
 
@@ -639,7 +645,7 @@ List → view / encode old records; schedule burial-related new records from cal
 - Certificate type: **Death** — implemented.
 - Requirements key: `deathCertificate`.
 - Minister assignment filter for death uses the **Burial** assignment in Manage Ministers.
-- Edit and **Move to Trash** require current-password verification. Trash retains the source and linked event. Record number/year are disabled in the edit form; saved time is preserved.
+- Edit requires current-password verification; **Move to Trash** additionally requires an Archive Reason. Trash retains the source and linked event. The Death tab in password-gated Archived Records supports confirmation-and-reason recovery (section 20). Record number/year are disabled in the edit form; saved time is preserved.
 - Death `status` represents civil status, not a sacramental completion lifecycle. The boolean `archived` flag is separate.
 
 ---
@@ -678,7 +684,7 @@ Encode conversions from the Conversion page or schedule New Records from the cal
 ### Important notes
 
 - **Conversion certificate generation is implemented**, including preview, editable Purpose, native print, and PDF through the shared certificate layout (§17).
-- Edit and **Move to Trash** require current-password verification. Archive retains the source and linked event; record number/year are disabled in the edit form.
+- Edit requires current-password verification; **Move to Trash** additionally requires an Archive Reason. The source and linked event are retained; record number/year are disabled on edit. The Conversion tab in password-gated Archived Records supports confirmation-and-reason recovery (section 20).
 - Linked Conversion events always use **08:00**; the chooser time is not saved by the Conversion form/service.
 - Requirements keys: `birthCertificate`, `baptismalCertificate`.
 
@@ -868,13 +874,13 @@ Parish identity on report headers:
 
 ### Business rules
 
-- Successful PDF export calls `saveReportMetadata` to store filters, title, filename, counts, and generation identity/time in `reports`. Generate and Print alone do not create history entries. No row snapshot or exported file is stored; reopening regenerates from current records, so edits and archiving can change results.
+- Successful PDF export calls `saveReportMetadata` to store filters, title, filename, counts, and generation identity/time in `reports`. Generate and Print alone do not create history entries. No row snapshot or exported file is stored; reopening regenerates from current records, so edits, archiving, and recovery can change results. Existing downloaded files and saved report metadata are not rewritten.
 - Export format recorded as PDF when exporting from the preview workflow.
 - Recent reports are ordered by creation time; `getRecentReports` defaults to 25 metadata entries. Metadata-write failure returns `null` and does not block the PDF download.
 - The year selector defaults to **All Years** and loads distinct stored `recordYear` values for the selected collection, newest first. A predefined year list is used if loading fails.
 - Changing report type resets year, month, and minister selections. Summary cards show all-time totals independently of the selected report filters.
 - **All Years** reads the selected collection; a specific year queries numeric `recordYear` (not the year of the sacrament date). Month uses the configured sacrament/Mass date and minister matching is an exact case-insensitive name match. Legacy string-valued years do not match a numeric year query.
-- Rows and available-year discovery exclude `archived === true`; summary counts also exclude archived sacramental records.
+- Rows and available-year discovery exclude `archived === true`; summary counts also exclude archived sacramental records. Recovery restores eligibility under existing year/month/minister/status filters on reload/regeneration. Already-generated report previews remain in-memory datasets.
 - Daily and Weekly Mass Intention report labels currently use the same year/month filtering as Monthly. There is no selected day or week range. Pending/Scheduled/Offered report types add their respective status filter.
 - **Recent Reports limitation:** saved `All Ministers` is passed literally into the minister matcher when reopened, which normally yields no rows. If reopening changes the report type, the type-change effect also resets visible filters; the generated preview still uses the passed filters.
 - Minister choices list Active assigned ministers (all Active ministers for Mass Intentions). Retired/inactive/free-text historical names remain reportable under All Ministers but may not have an individual selector option.
@@ -973,7 +979,7 @@ These DOCX files guide visual/content alignment. **The application does not curr
 
 ### Business rules
 
-- A saved `recordId` is required; the source getters return no record for missing or `archived === true` documents. An already-open preview is an in-memory copy and is not revalidated on Print/PDF.
+- A saved `recordId` is required; the source getters return no record for missing or `archived === true` documents. Recovery restores normal source lookup for the same record ID; it does not generate a certificate or change its content. An already-open preview is an in-memory copy and is not revalidated on Print/PDF.
 - All five configured sacraments are supported. Unsupported types or missing IDs disable the shared action; source-load failures show an error.
 - Certificate generation does not alter the source sacramental record.
 
@@ -1092,13 +1098,44 @@ Exact collection names from `src/constants/collections.js`:
 
 ### Trash / Archive storage and compatibility
 
-All five sacramental services expose `archive*Record(id)`, which calls `updateDoc` on the original collection/document with **`archived: true`** and **`archivedAt: serverTimestamp()`**. There is no `trash` collection or move/copy operation. The archive write does not set `archivedBy`, update the ordinary audit fields, or create an `auditLogs` entry.
+**Sources:** `src/pages/ArchivedRecords.jsx`, `src/components/PasswordVerificationDialog.jsx`, `src/services/passwordService.js`, `src/services/archiveService.js`, the five sacramental record pages/services, `src/App.jsx`, and `src/layouts/AdminLayout.jsx`.
+
+#### Archived Records access
+
+The shared desktop/mobile sidebar includes **Archived Records** at `/records/archived`. This is an additive Admin/Staff route; the original module routes remain unchanged.
+
+1. Opening the route first shows **Access Archived Records**, asking for the current account password. Before successful verification, only the heading/password dialog is rendered: no archive names, counts, tabs, or record queries. Direct URL entry starts locked; Cancel returns to Dashboard (`/`).
+2. `verifyCurrentPassword` uses Firebase `EmailAuthProvider.credential` and `reauthenticateWithCredential`. Incorrect passwords leave the page locked; passwords are not stored in Firestore.
+3. Successful verification creates temporary in-memory access for the current Firebase user and page visit. The page is keyed by user UID and router location key, revokes access on unmount, and listens for account changes. Refresh, leaving/re-entry, logout, or changing accounts requires verification again. Unlock state is not persisted in browser storage; there is no timed expiry during an otherwise unchanged visit.
+4. After verification, tabs separate **Baptism, Confirmation, Marriage, Death, and Conversion**, initially selecting Baptism. Only the selected collection is queried with `where('archived', '==', true)`; switching tabs mounts/loads that tab again. Records sort by year then record number, descending.
+5. Rows show Record Number, Name (both spouses for Marriage), Archived On, Archive Reason, and **Recover**. Missing reasons/dates display **Not recorded**. Empty/failed loads show an empty-state message or Retry action.
+
+#### Archive and recovery workflows
+
+All five record pages use `PasswordVerificationDialog` with `requireReason` for **Move to Trash**: provide **Archive Reason** and **Current Password**, reject blank/whitespace-only reasons, verify the password, then call `archive*Record(id, reason)`. These five wrappers delegate to `archiveRecord(collectionName, id, reason)`. Successful archiving closes the dialog and reloads the active record list.
+
+**Recover** opens a confirmation dialog showing the record identity and requiring **Recovery Reason**. Blank/whitespace-only reasons are rejected in both UI and service. **Confirm Recovery** calls `recoverArchivedRecord(collectionName, id, reason, access)` without a second password prompt. Success removes the row from the archive table and shows a success alert; failure leaves the dialog/reason available with an error.
+
+Both actions use `runTransaction` against the **existing document** in `baptism`, `confirmation`, `marriage`, `death`, or `conversion`. The shared service allowlists these collections, validates ID/reason and the current account, checks document existence, and rejects already-archived/already-recovered states. Recovery also validates the visit's access before and after the transactional read. Reasons are trimmed before storage.
+
+| Field | Archive write | Recovery write |
+|-------|---------------|----------------|
+| `archived` | `true` | `false` |
+| `archivedAt` | `serverTimestamp()` | Preserved |
+| `archiveReason` | Required trimmed reason | Preserved |
+| `recoveredAt` | Preserved if already present | `serverTimestamp()` |
+| `recoveryReason` | Preserved if already present | Required trimmed reason |
+
+There is no `trash` collection, move/copy, permanent deletion, or migration. Each transaction updates only the three fields for its action. It does **not** modify sacramental/civil `status`, registry numbers, ordinary `updatedAt`/`updatedBy` fields, or linked events. Neither action writes actor UID/email fields or an `auditLogs` entry. These fields record the latest respective actions, not complete history: subsequent archives overwrite archive reason/time; subsequent recoveries overwrite recovery reason/time.
 
 - Only the literal boolean `true` hides a record; missing/false flags remain visible. A legacy `status: 'archived'` alone is not the Trash flag.
+- Legacy archived documents without `archiveReason`, `recoveryReason`, or recovery timestamps remain recoverable without a backfill.
 - Active lists and single-record getters exclude archived records. Calendar loading checks the five sacramental parent collections and suppresses linked events without deleting them. Reports and year discovery filter archived rows; Dashboard/Reports counts subtract archived totals.
+- Recovery returns the same document to its correct active module on the next load, subject to existing filters, and restores fresh certificate lookup eligibility. Retained calendar events reappear on reload without recreation/rescheduling; independently missing events are not rebuilt. Reports/year discovery and totals include recovered records on reload/regeneration under existing filters. Already-open screens/previews, other browser tabs, saved metadata, and downloaded files are not automatically rewritten.
 - Auto-numbering and duplicate checks include retained records, preventing reuse of their numbers in the ordinary sequential workflow. They are still non-transactional.
+- Recovery preserves the original number and document ID. Transactional archive/recovery state updates do not change the existing non-transactional number-allocation logic.
 - Sacramental list/by-ID readers assign the real Firestore snapshot ID after stored data, so a legacy stored `id` cannot override the document reference in those paths. This precedence is not universal: event, report-row, and Mass Intention mappings still spread stored data after the snapshot ID.
-- No Trash browser, restore action/service, purge UI, or automatic expiry exists. Existing update services do not independently reject an archived ID, and rules still allow staff/admin access to retained documents.
+- There is no purge UI or automatic expiry. Normal edit services do not independently reject an archived ID, and rules still allow staff/admin access to retained documents. The password gate is an application control, not a database read restriction (§28).
 
 ### Common audit fields on records
 
@@ -1110,7 +1147,7 @@ Many operational documents store `createdAt`, `updatedAt`, `createdBy`, and `upd
 |------------|-------------------|
 | `baptism` | `bookNumber`, `lineNumber`, `pageNumber`, `birthCertificateRegistryNumber`, and residence on godparent objects |
 | `confirmation` | `bookNumber`, `lineNumber`, `pageNumber`, `baptismParishName`, `parentsResidence`, `maleSponsorResidence`, `femaleSponsorResidence`, and the four `baptismalCertificate*` references described in §10 |
-| Five sacramental collections | Optional `archived` boolean and `archivedAt` server timestamp; retained in the original collection |
+| Five sacramental collections | `archived`, `archivedAt`, `archiveReason`, `recoveredAt`, `recoveryReason`; additive fields on the original document; missing legacy fields remain compatible |
 | `events` | Manual events store `startTime`, `endTime`, and compatibility field `time` (set to start time); older single-time documents remain readable |
 
 These fields are handled by current forms and services. This documentation update does not migrate existing Firestore documents.
@@ -1188,7 +1225,8 @@ Protect data quality at the form and service layers before Firestore writes.
 - Mass Intention Offered / Cancelled confirmations
 - Unsaved changes discard confirmation
 - Delete confirmations (for example Mass Intention delete, manual event delete)
-- Current-password verification before edit and Move to Trash in all five sacramental record pages
+- Current-password verification before edit and Move to Trash in all five sacramental record pages; Trash additionally requires a trimmed nonblank Archive Reason
+- Archive access requires current-password verification; Recover requires identity confirmation and a trimmed nonblank Recovery Reason
 
 #### Unsaved Changes Warning
 
@@ -1264,7 +1302,7 @@ Audit write failures are handled so the primary user operation can still succeed
 
 Baptism, Marriage, Death, Conversion, Mass Intentions, and Ministers services write actor/timestamp fields on their ordinary save paths. Confirmation writes timestamps but does not populate creator/updater identity. Baptism, Confirmation, Death, and Conversion do not write separate create/update `auditLogs` entries.
 
-All five sacramental archive helpers write only `archived` and `archivedAt`; they do not identify the archiving user or append an audit log. Manual event documents have timestamps but no actor fields in their service payloads.
+All five archive helpers write `archived`, `archivedAt`, and `archiveReason`; recovery writes `archived`, `recoveredAt`, and `recoveryReason`. Neither action identifies the actor, changes ordinary save audit fields, or appends an audit log. Recovery preserves archive metadata. Manual event documents have timestamps but no actor fields in their service payloads.
 
 ### View dialogs
 
@@ -1301,7 +1339,8 @@ The admin sidebar and footer open a shared **About** dialog with parish/applicat
 - Manual event form dialog
 - Mass Intention status confirmation dialogs
 - Unsaved-changes confirmation dialog
-- Password-verification dialogs for sacramental editing and Move to Trash
+- Password-verification dialogs for sacramental editing, Move to Trash (with Archive Reason), and Archived Records access
+- Five Archived Records tabs and Recover confirmation with required Recovery Reason
 
 ### Notifications and loading states
 
@@ -1360,8 +1399,10 @@ All routes under the admin shell (`/`, records, mass intentions, ministers, repo
 - Self-profile updates cannot change role / email / status privileges in UI and rules
 - Mass Intention locked records blocked in UI and service layer
 - Sacramental calendar events cannot be casually overwritten from the calendar editor
-- All five sacramental record pages use `PasswordVerificationDialog` before edit and Move to Trash. `verifyCurrentPassword` reauthenticates the signed-in email/password user through Firebase Auth; the supplied password is not stored in Firestore.
-- Password verification is a page workflow control. The record services and Firestore rules do not independently require recent reauthentication. The dialog clears the password and disables repeat submission/closing while verification and its callback run.
+- All five sacramental record pages use `PasswordVerificationDialog` before edit and Move to Trash; Trash enables the required Archive Reason field. Archived Records uses the same dialog before mounting/querying its record list. `verifyCurrentPassword` reauthenticates the signed-in email/password user through Firebase Auth; the supplied password is not stored in Firestore.
+- Password verification is a page workflow control. The record services and Firestore rules do not independently require recent reauthentication. The dialog clears the password and disables repeat submission/closing while verification and its callback run. A completed verification callback is ignored if the dialog has unmounted/closed or the Auth user changed.
+- Archive access is an in-memory user/visit-scoped object. Reads check it before and after fetching; recovery checks it around the transactional read. Refresh, leaving/re-entry, logout, and account changes require verification again. Direct URL entry starts locked. Recovery needs confirmation + reason, without another password. There is no persistent unlock or timed expiry.
+- This gate prevents pre-authentication archive-page queries/display, not all archived-document reads across the app: normal record/numbering loaders scan collections and filter in memory. The access object is client-created, not server-issued proof of reauthentication. Existing Firestore rules still govern direct access.
 - Operational rules grant active staff/admin broad read/write, including direct deletion, access to archived documents, and changes to lock/archive fields. They do not enforce record schemas, unique numbering, calendar date/overlap rules, Mass Intention transitions, or archive immutability. Trash retention is an application workflow, not a database prohibition on deletion.
 
 ### Firestore Security Rules (`firestore.rules`)
@@ -1406,7 +1447,7 @@ The following rules are enforced in the current codebase (UI and/or service and/
 
 ### Record updates and deletion
 
-1. All five sacramental registers support edit and **Move to Trash** after current-password verification in their record pages. Archive sets `archived: true` and `archivedAt` on the original document, retaining data and linked events. Active views exclude archived parents; no restore/purge UI exists. Registry numbers remain reserved. See §20 for exact read, ID, and compatibility behavior.
+1. All five registers require current-password verification for edit and **Move to Trash**; Trash also requires a trimmed nonblank Archive Reason. Archive transactionally sets `archived: true`, `archivedAt`, and `archiveReason` on the original document. **Archived Records** requires verification for each visit before loading/displaying its five tabs. **Recover** requires identity confirmation + trimmed nonblank Recovery Reason, then transactionally sets `archived: false`, `recoveredAt`, and `recoveryReason` without a second password. Recovery preserves archive metadata, status, registry number/ID, and linked events. Missing legacy metadata does not block recovery. No purge UI exists. See sections 20 and 28 for compatibility, reload behavior, and enforcement limits.
 2. Ministers have **no delete** path in v1.0; status may be Active / Retired / Inactive.
 3. Certificate generation requires an existing saved record (`recordId`) and does not modify the source record.
 
@@ -1505,7 +1546,7 @@ firebase deploy --only firestore:rules,storage
 1. Merge to the production GitHub branch.
 2. Confirm Vercel build succeeds with Firebase env vars set.
 3. Deploy Firestore and Storage rules if rules changed.
-4. Verify login/role/status rules, all five sacramental create/edit/Trash paths, retained numbering, and archive exclusion in lists, reports, counts, calendar, and fresh certificate loads using disposable records.
+4. Verify login/role/status rules, all five create/edit/Trash paths (password + Archive Reason), gated Archive direct entry/re-entry, and Recover (confirmation + Recovery Reason) using disposable records. Check wrong passwords, blank reasons, refresh/logout/account access reset, legacy metadata, preserved numbering/status/events, archive exclusion, and recovered-record inclusion in active lists, reports, counts, calendar, and fresh certificate loads.
 5. Check native A4 print and PDF for all five certificate types with long names, sponsors, and Purpose; verify report export/history behavior and review the current limitations in §33.
 
 These are release steps, not deployment actions or completed checks from this documentation audit.
@@ -1514,7 +1555,22 @@ These are release steps, not deployment actions or completed checks from this do
 
 ## 32. Testing
 
-The repository provides `npm run lint` and `npm run build`, but no automated test script, application test suite, or rules/emulator test configuration was found. This September 14 audit inspected source/configuration and checked the documentation diff; it did **not** run application lint/build, browser tests, Firebase writes, deployment, physical printing, or UAT. An existing `dist/` folder or a historical revision note does not establish that current code passed those checks.
+The repository provides `npm run lint` and `npm run build`, plus targeted archive regression tests under `tests/`. There is no `npm test` script or Firebase rules/emulator test configuration. This September 16 documentation review inspected source/test fixtures and the documentation diff; it did not rerun application tests/builds or perform live Firebase writes, deployment, physical printing, or UAT.
+
+### Implemented automated archive checks
+
+Run from the application directory after installing dependencies:
+
+```bash
+node --experimental-vm-modules --test tests/archive.test.mjs
+node tests/archive-browser.mjs
+```
+
+- **Service suite (8 tests):** production services with an in-memory Firebase substitute. Covers all five archive/recovery wrappers, blank reasons, trimming, metadata/status/record identity preservation, legacy recovery, duplicate/missing-state rejection, active-list return, Dashboard counts, report rows/year discovery, retained calendar visibility, and the single-record getters used by certificates. Also covers simulated wrong/blank/correct passwords, invalid/revoked/account-changed access, and revocation during a simulated transaction.
+- **Chrome UI fixture:** `tests/archive-browser.mjs` bundles `tests/archive-browser.jsx` with real React/MUI components but simulated authentication, Auth context, and archive services. Checks direct-route lock, zero archive reads with wrong/no verification, all five tabs, recovery identity/required reason without another password, row removal, route re-entry, fresh component remount, account change/logout, and the shared archive dialog for five type labels. It does not mount all five full active record pages or exercise live Firebase transactions.
+- **Requirements/limits:** service tests use Node's experimental VM-module support. UI tests require local Chrome (Windows default path or `CHROME_PATH`) and start a local test server/isolated profile. Component remount models refresh reset; it is not a deployed-browser reload test. Neither suite verifies deployed rules, actual credentials, concurrent Firestore clients, or physical certificate printing.
+
+Implementation verification on September 16, 2026 reported 8 service tests and Chrome checks passing, a successful build, and only pre-existing lint warnings. Those isolated test/build results were not rerun for this documentation-only edit and do not establish deployed acceptance testing.
 
 The following manual and acceptance scenarios are a verification checklist, not evidence of completed tests against the deployed application.
 
@@ -1522,13 +1578,15 @@ The following manual and acceptance scenarios are a verification checklist, not 
 
 - Sign-in / sign-out / unauthorized role and inactive status
 - Each sacramental module: list, search/filter, view, create (old), edit, calendar new-record path
-- All five sacramental pages: reject incorrect passwords before edit/Move to Trash; verify original document retention, `archivedAt`, retained linked events, and absence from active lists, reports, years, counts, calendar, and fresh certificate loads using disposable records
+- All five sacramental pages: reject incorrect passwords before edit/Move to Trash and empty/whitespace-only Archive Reasons; verify trimmed `archiveReason`, `archivedAt`, document retention, unchanged status/numbering/events, and exclusion from active lists, reports, years, counts, calendar, and fresh certificate loads
 - Archive compatibility: missing/false archive flags stay visible; boolean true hides records; archived numbers remain reserved; stored legacy `id` values cannot override sacramental document IDs
-- Confirm no in-app restore/purge exists; do not treat retention as a completed restore workflow
+- Archived Records: sidebar/direct URL, wrong/cancelled password, refresh, leave/re-entry, logout, and account switch must load/display no archive data before successful verification
+- Recover from each tab: identity confirmation, required trimmed Recovery Reason, no second password, legacy missing metadata, preservation of archive fields/status/number/ID, and return to the correct active module on reload; no permanent purge action exists
+- Verify recovered calendar events/counts/years/report rows and fresh certificate lookups on reload/regeneration; already-open previews/downloads remain unchanged; recovery must not recreate an independently missing event
 - Baptism: registry references, godparent residence, Birth Certificate registry number, and preservation of stored status/time on edit
 - Confirmation: age below 13 rejected, age 13 accepted, baptism parish and certificate references, legacy birth-date preservation, and certificate output without a birth date
 - Death: birth/death/burial ordering and the old-record burial-date gap; Marriage/Death computed ages, including zero, and absence of a minimum marriage-age rule
-- Calendar: past-date entry-point lock, changed-manual-date validation gap, date overview for busy days, manual event CRUD, sacramental event view-only, and reload after archiving a linked record
+- Calendar: past-date entry-point lock, changed-manual-date validation gap, date overview for busy days, manual event CRUD, sacramental event view-only, and reload after archiving/recovering a linked record
 - Scheduling time: verify the four time-enabled sacramental forms preserve the chooser time and record the Conversion fixed-08:00 limitation
 - Calendar ranges: end after start, overlap rejection, adjacent ranges allowed, editing without self-conflict, and legacy single-time events
 - Mass Intentions: status transitions, read-only after Offered/Cancelled, delete rules
@@ -1543,7 +1601,7 @@ The following manual and acceptance scenarios are a verification checklist, not 
 
 ### Functional testing
 
-Verify business rules from §30 (especially password-verified sacramental actions, archive retention/exclusion and numbering, permanent unlocked Mass Intention deletion and event cleanup, calendar past dates and overlaps, Mass Intention locks, Proper Case, and RBAC).
+Verify business rules from §30 (especially password-verified sacramental actions, archive access reset, required archive/recovery reasons, retention/recovery/exclusion and numbering, permanent unlocked Mass Intention deletion and event cleanup, calendar past dates and overlaps, Mass Intention locks, Proper Case, and RBAC).
 
 ### User acceptance testing (UAT)
 
@@ -1554,6 +1612,7 @@ To be conducted with parish office stakeholders using representative parish work
 3. Process Mass Intentions through Offered/Cancelled
 4. Generate certificates for requesting parishioners
 5. Produce monthly/yearly reports for office filing
+6. Archive with password + reason, authenticate into Archived Records, and recover with confirmation + reason; verify the record returns to its module
 
 ---
 
@@ -1561,7 +1620,7 @@ To be conducted with parish office stakeholders using representative parish work
 
 These limitations reflect the **current** implementation, verified in the referenced source paths:
 
-1. **Trash recovery and audit** — all five registers retain archived records, but there is no Trash browser, restore service/action, purge UI, or archive actor/log entry (`archive*Record` in sacramental services). Archive fields do not make records immutable or inaccessible through direct Firestore access.
+1. **Archive audit/history** - viewer and recovery are implemented for all five registers, but no actor UID/email, separate archive/recovery audit log, complete multi-cycle history, purge UI, or automatic expiry exists. Each action overwrites its own reason/time fields. The viewer loads all archived records in the selected type without search/pagination or recovery-history display (`ArchivedRecords.jsx`, `archiveService.js`).
 2. **No runtime DOCX export or certificate issuance register** — DOCX files are design references; certificates/PDFs and preview Purpose changes are not stored as issued artifacts.
 3. **Uploads** — profile photo Storage SDK/rules are prepared, but there is no upload UI. Documentary requirements are checklists, with no attachments.
 4. **Calendar scheduling gaps** — Mass Intention is absent from `SACRAMENT_SCHEDULE_OPTIONS`; Conversion ignores the chosen time and syncs at 08:00 (`conversionService`). The other four sacramental forms preserve time on edit without providing a time-change field. Manual forms opened on an allowed date can save a changed past date; only the creation entry points check today.
@@ -1569,14 +1628,14 @@ These limitations reflect the **current** implementation, verified in the refere
 6. **Concurrency and scale** — numbering and overlap checks are non-transactional. Lists and number allocation scan collections; calendar archive filtering adds a read per distinct linked parent. There is no server-side record pagination or live operational-data subscription. Dashboard count failures become zero (`dashboardService`).
 7. **Security enforcement scope** — rules allow active staff/admin broad operational read/write, including hard deletion and archive/lock changes. Recent-password verification, record validation, calendar restrictions, and Mass Intention locks are not database-enforced. Service lock checks can also use caller-supplied record lists (§28).
 8. **Mass Intention lifecycle** — unlocked forms permit all four status choices; only Scheduled → Offered/Cancelled triggers confirmation. Services do not enforce the intended transition order, and calendar sync does not filter Pending/Offered/Cancelled intentions.
-9. **Audit coverage** — no Audit Logs page; only Profile, Marriage create/update, and Mass Intention operations call `createAuditLog`. Confirmation lacks creator/updater identity fields in its service; sacramental archiving records time only.
+9. **Audit coverage** — no Audit Logs page; only Profile, Marriage create/update, and Mass Intention operations call `createAuditLog`. Confirmation lacks creator/updater identity fields in its service; sacramental archive/recovery stores reasons and timestamps but no actor identity or separate log entries.
 10. **Certificate layout coverage** — all five runtime types use the shared Baptism layout. Separate dedicated components are not selected. New Confirmation forms collect age, leaving the certificate birth-date line blank when no stored date exists. Long content is scaled onto one page and can become small; PDFs are raster images. Google Fonts may fall back when unavailable.
 11. **Report period filters** — Daily/Weekly Mass Intention types are labels without day/week filtering; all use year/month. Specific-year queries require numeric `recordYear`; historical string years can appear under All Years but be missed by a selected-year query.
 12. **Recent Reports** — history stores metadata, not snapshots. Reopening All Ministers passes that label as an exact minister-name filter and normally returns no rows. A type change can reset visible filters after generation; PDFs already downloaded are unaffected (`Reports.jsx`, `reportService`).
 13. **Historical minister selection** — report selectors list Active ministers only, with assignment filtering for sacraments. Historical free-text/retired names may require All Ministers instead of an individual selection.
 14. **Validation/editing gaps** — Baptism cannot clear an existing book/line/page value by leaving it blank; Confirmation record number is disabled on edit, and Marriage/Death/Conversion number and year are disabled in their edit forms. Old Death creation checks a past death date but not a past burial date. Marriage age validation accepts non-negative values without a minimum age. Active minister roster choices coexist with unrestricted Other/free-name entry.
 15. **Remaining ID compatibility** — sacramental list/by-ID paths prioritize the actual snapshot ID, but event, report-row, and Mass Intention mappings still allow a stored `id` field to overwrite it. This matters for legacy documents containing that field.
-16. **Verification/tooling** — no automated application/rules test suite is configured. This audit does not establish deployed rules, production behavior, printer compatibility, or UAT completion. Desktop browsers are the primary target; no native mobile app is present. Unused packages remain (`react-hook-form`, `react-icons`, `sweetalert2`).
+16. **Verification/tooling** - targeted archive service and Chrome UI tests exist (section 32), but no `npm test` script, comprehensive application suite, or rules/emulator tests are configured. Simulated Firebase/authentication and remount checks do not establish live rules, real credentials, deployed refresh behavior, printer compatibility, or UAT completion. Desktop browsers remain the primary target; no native mobile app exists. Unused packages remain (`react-hook-form`, `react-icons`, `sweetalert2`).
 17. **Account recovery/administration** — the reset-email service helper has no user-facing caller, and there is no in-app account provisioning/management page. Profile password change is implemented for signed-in users.
 
 ---
@@ -1585,7 +1644,7 @@ These limitations reflect the **current** implementation, verified in the refere
 
 Features **not implemented** in Parish Connect v1.0 (candidates for later releases, not committed delivery dates):
 
-1. **Trash administration** — browse and restore retained records, with actor tracking and a defined purge policy
+1. **Archive administration improvements** - actor tracking, complete archive/recovery history, search/pagination, and stronger server-enforced access; browsing and recovery are already implemented
 2. **Activity Logs / Audit Trail UI** — admin screen to browse `auditLogs`, plus broader write coverage across modules
 3. **QR Code Certificate Verification** — issuance records and public or controlled verification
 4. **OCR Digitization of Parish Books** — scan historical registers into structured records
@@ -1599,7 +1658,7 @@ Features **not implemented** in Parish Connect v1.0 (candidates for later releas
 12. **Profile photo and document uploads** — wire Storage into approved user workflows
 13. **Calendar completion** — expose Mass Intention quick-create, preserve Conversion chooser time, and add a time-correction workflow
 14. **Report corrections** — true daily/weekly ranges, reliable saved All Ministers regeneration, and historical minister selection
-15. **Data integrity and verification** — transactional numbering/conflict prevention, stronger operational rules, consistent ID mapping, scalable reads, automated tests, and browser/printer acceptance checks
+15. **Data integrity and verification** — transactional numbering/conflict prevention, stronger operational rules, consistent ID mapping, scalable reads, broader application/rules tests beyond the archive fixtures, and browser/printer acceptance checks
 16. **Dependency cleanup** — remove unused packages when confirmed unnecessary
 17. **Account recovery/administration UI** — connect reset-email functionality and provide an authorized account-management workflow
 
@@ -1609,7 +1668,8 @@ Features **not implemented** in Parish Connect v1.0 (candidates for later releas
 
 | Version | Date | Summary |
 |---------|------|---------|
-| Documentation 1.3 | 2026-09-14 | **Full source-based documentation audit of all sections and appendices.** Corrected Trash/Archive retention, boolean compatibility, reserved numbering, snapshot ID handling, archive-aware lists/lookups/reports/counts/calendar, and absent restore/purge UI. Verified Conversion certificate preview/print/PDF, shared runtime layout, Purpose, actual Minister/signature labels, and implemented A4 fitting. Corrected authentication error routing, report filtering/history gaps, scheduling time behavior, security enforcement boundaries, audit coverage, deployment requirements, and testing claims. Removed obsolete missing-Conversion/permanent-sacramental-deletion limitations; documented remaining source-confirmed gaps and future work. Last reviewed set to September 14, 2026. Documentation only; no live deployment, application test, or UAT completion claimed. Application version unchanged. |
+| Documentation 1.4 | 2026-09-16 | **Source-verified Archive revision.** Documented sidebar/route and five tabs, password-before-query/display gate, temporary account/visit access, password + Archive Reason, confirmation + Recovery Reason, transactional in-place writes, exact fields, legacy recovery, and preserved metadata/status/numbering/events. Updated reload/regeneration effects, security boundaries, audit limits, test coverage/simulation limits, development status, business rules, and future work. Supersedes prior absent-viewer/recovery statements. Last reviewed September 16, 2026. Documentation only; source/version unchanged; no migration or live acceptance claim. |
+| Documentation 1.3 | 2026-09-14 | **Full source-based documentation audit of all sections and appendices.** Corrected Trash/Archive retention, boolean compatibility, reserved numbering, snapshot ID handling, archive-aware lists/lookups/reports/counts/calendar, and the then-absent restore/purge UI (viewer/recovery absence superseded by Documentation 1.4). Verified Conversion certificate preview/print/PDF, shared runtime layout, Purpose, actual Minister/signature labels, and implemented A4 fitting. Corrected authentication error routing, report filtering/history gaps, scheduling time behavior, security enforcement boundaries, audit coverage, deployment requirements, and testing claims. Removed obsolete missing-Conversion/permanent-sacramental-deletion limitations; documented remaining source-confirmed gaps and future work. Last reviewed set to September 14, 2026. Documentation only; no live deployment, application test, or UAT completion claimed. Application version unchanged. |
 | Documentation 1.2 | 2026-09-07 | Recorded the introduction of sacramental Trash/Archive retention, archive filtering, password verification changes, certificate layout revisions, and record ID handling. The prior entry reported build/regression completion and ongoing final QA; those historical claims are not independently verified by this audit. Its blanket signature-label and print-overflow status descriptions are superseded by the current runtime findings in §17/§24 and verification scope in §32. Application version unchanged. |
 | Documentation 1.1 | 2026-09-06 | Reviewed source through `af9abdc`. Added password-verified sacramental edit/delete, linked-event cleanup, Baptism/Confirmation registry fields and age rules, calendar time ranges and overlap checks, All Years reports, Confirmation certificate revisions, About/footer UI, provisioning utility, and updated verification checklist and limitations. Application version unchanged. |
 | 1.0 | 2026-08-04 | Initial documentation alignment for Parish Connect v1.0: architecture (Vercel + Firebase), full stack including `react-to-print`, certificate preview/print/PDF workflow, calendar and Mass Intention rules, Firestore/Storage rules detail, consolidated business rules, deployment, testing, known limitations, and future enhancements. Removed outdated certificate popup-print references. The historical production-ready wording does not establish current production readiness. |
