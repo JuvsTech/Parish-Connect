@@ -18,6 +18,7 @@ const DeathRecords = lazy(() => import('./pages/DeathRecords'))
 const ConversionRecords = lazy(() => import('./pages/ConversionRecords'))
 const MassIntentions = lazy(() => import('./pages/MassIntentions'))
 const ManageMinisters = lazy(() => import('./pages/ManageMinisters'))
+const AuditLogs = lazy(() => import('./pages/AuditLogs'))
 const Reports = lazy(() => import('./pages/Reports'))
 const ArchivedRecords = lazy(() => import('./pages/ArchivedRecords'))
 const Profile = lazy(() => import('./pages/Profile'))
@@ -87,6 +88,7 @@ const router = createBrowserRouter([
             element: <Navigate to="/ministers" replace />,
           },
           { path: '/reports', element: <Reports /> },
+          { path: '/audit-logs', element: <ProtectedRoute allowedRoles={['admin']}><AuditLogs /></ProtectedRoute> },
           { path: '/profile', element: <Profile /> },
           { path: '*', element: <NotFound /> },
         ],

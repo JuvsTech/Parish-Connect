@@ -23,6 +23,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  MenuItem,
   Tooltip,
   Typography,
 } from '@mui/material'
@@ -72,6 +73,7 @@ const MarriageOldRecordFormDialog = lazy(
 const EMPTY_FILTERS = {
   recordTypes: [],
   recordYears: [],
+  books: [],
   ministers: [],
   marriageDates: [],
   requirementsStatuses: [],
@@ -203,7 +205,7 @@ function ViewMarriageDialog({ open, record, onClose }) {
       scroll="paper"
       slotProps={{ paper: {
         sx: {
-          borderRadius: 4,
+          borderRadius: '16px',
           border: '1px solid',
           borderColor: 'divider',
           boxShadow: '0 16px 40px rgba(11, 61, 145, 0.12)',
@@ -252,20 +254,23 @@ function ViewMarriageDialog({ open, record, onClose }) {
             bgcolor: '#FFFFFF',
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 3,
+            borderRadius: '12px',
             px: { xs: 2, sm: 3 },
             py: { xs: 2.25, sm: 2.75 },
           }}
         >
           <DetailSection title="Record Information">
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <DetailField label="Record Number" value={record.recordNo} />
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <DetailField label="Record Number" value={record.recordNumber} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <DetailField label="Record Year" value={record.recordYear} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <DetailField label="Record Type" value={record.recordType} />
+            <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Book No." value={record.bookNumber ? String(record.bookNumber).toUpperCase() : 'N/A'} /></Grid>
+            <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Line No." value={record.lineNumber ? String(record.lineNumber).padStart(2, '0') : 'N/A'} /></Grid>
+            <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Page No." value={record.pageNumber ? String(record.pageNumber).padStart(3, '0') : 'N/A'} /></Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <DetailField label="Status" value={record.status || 'N/A'} />
             </Grid>
           </DetailSection>
 
@@ -451,6 +456,7 @@ export default function MarriageRecords() {
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [filterAnchorEl, setFilterAnchorEl] = useState(null)
   const [records, setRecords] = useState([])
+  const [nameSort, setNameSort] = useState('default')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -524,6 +530,7 @@ export default function MarriageRecords() {
   const filterOptions = useMemo(
     () => ({
       recordTypes: ['New Record', 'Old Record'],
+      books: uniqueSortedValues(records.map(record => String(record.bookNumber ?? '').trim().toUpperCase()).filter(value => value && value !== 'N/A' && value !== '-')),
       recordYears: uniqueSortedValues(
         records.map((record) =>
           record.recordYear != null && record.recordYear !== ''
@@ -547,7 +554,8 @@ export default function MarriageRecords() {
   const filteredRecords = useMemo(() => {
     const queryText = search.trim().toLowerCase()
 
-    return records.filter((record) => {
+    const matches = records.filter((record) => {
+      if (filters.books.length && !filters.books.includes(String(record.bookNumber ?? '').trim().toUpperCase())) return false
       if (
         filters.recordTypes.length > 0 &&
         !filters.recordTypes.includes(record.recordType)
@@ -602,7 +610,17 @@ export default function MarriageRecords() {
         .toLowerCase()
         .includes(queryText)
     })
-  }, [records, filters, search])
+    if (nameSort === 'default') return matches
+    return matches.sort((a, b) => {
+      const prefix = nameSort.startsWith('bride') ? 'bride' : 'groom'
+      const keys = [prefix + 'LastName', prefix + 'FirstName', prefix + 'MiddleName', prefix + 'Suffix']
+      for (const key of keys) {
+        const comparison = String(a[key] ?? '').trim().localeCompare(String(b[key] ?? '').trim(), undefined, { sensitivity: 'base', numeric: true })
+        if (comparison) return nameSort.endsWith('desc') ? -comparison : comparison
+      }
+      return 0
+    })
+  }, [records, filters, search, nameSort])
 
   function handleOpenFilters(event) {
     setFilterAnchorEl(event.currentTarget)
@@ -725,7 +743,7 @@ export default function MarriageRecords() {
       <Card
         sx={{
           mb: 2.75,
-          borderRadius: 3,
+          borderRadius: '12px',
           p: { xs: 1.5, sm: 1.75 },
         }}
       >
@@ -861,6 +879,17 @@ export default function MarriageRecords() {
                         handleToggleFilter('recordYears', value)
                       }
                     />
+                    <TextField select label="Book No." size="small" fullWidth value={filters.books[0] || ''} onChange={event => setFilters(prev => ({ ...prev, books: event.target.value ? [event.target.value] : [] }))}>
+                      <MenuItem value="">All Books</MenuItem>
+                      {filterOptions.books.map(book => <MenuItem key={book} value={book}>{book}</MenuItem>)}
+                    </TextField>
+                    <TextField select label="Sort by" size="small" fullWidth value={nameSort} onChange={event => setNameSort(event.target.value)}>
+                      <MenuItem value="default">Existing/default record order</MenuItem>
+                      <MenuItem value="groom-asc">Groom A?Z</MenuItem>
+                      <MenuItem value="groom-desc">Groom Z?A</MenuItem>
+                      <MenuItem value="bride-asc">Bride A?Z</MenuItem>
+                      <MenuItem value="bride-desc">Bride Z?A</MenuItem>
+                    </TextField>
                     <FilterSection
                       title="Minister"
                       options={filterOptions.ministers}
@@ -907,7 +936,7 @@ export default function MarriageRecords() {
         </Stack>
       </Card>
 
-      <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
           <Box
             sx={{
@@ -975,6 +1004,9 @@ export default function MarriageRecords() {
               <TableHead>
                 <TableRow>
                   <TableCell>Record Number</TableCell>
+                  <TableCell>Record Year</TableCell>
+                  <TableCell>Book No.</TableCell>
+                  <TableCell>Page No.</TableCell>
                   <TableCell>Marriage Date</TableCell>
                   <TableCell>Groom</TableCell>
                   <TableCell>Bride</TableCell>
@@ -1005,6 +1037,9 @@ export default function MarriageRecords() {
                         {record.recordNo}
                       </Typography>
                     </TableCell>
+                    <TableCell>{record.recordYear || 'N/A'}</TableCell>
+                    <TableCell>{String(record.bookNumber ?? '').trim().toUpperCase() || 'N/A'}</TableCell>
+                    <TableCell>{record.pageNumber ? String(record.pageNumber).padStart(3, '0') : 'N/A'}</TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
                         {record.marriageDate}

@@ -1,5 +1,8 @@
 import './certificate.css'
-import dioceseLogoUrl from '../../assets/certificates/diocese-logo.png'
+import parishConnectLogoUrl from '../../assets/parish-connect-logo.png'
+
+import certificateRightLogoUrl from '../../assets/certificates/diocese-logo-new.png'
+import dioceseLogoUrl from '../../assets/certificates/diocese-logo-new.png'
 import parishLogoUrl from '../../assets/certificates/parish-seal.png'
 
 /**
@@ -12,6 +15,7 @@ export default function CertificateLayout({
   parishAddress,
   title,
   logos = {},
+  revisedRegistry = false,
   children,
   className = '',
 }) {
@@ -20,7 +24,7 @@ export default function CertificateLayout({
 
   return (
     <article
-      className={`pc-certificate-page ${className}`.trim()}
+      className={`pc-certificate-page ${className} ${revisedRegistry ? 'pc-certificate-revised' : ''}`.trim()}
       data-certificate-page="true"
     >
       <div className="pc-certificate-frame" aria-hidden="true" />
@@ -29,25 +33,25 @@ export default function CertificateLayout({
           <div className="pc-certificate-logo-slot">
             <img
               className="pc-certificate-logo"
-              src={dioceseSrc}
-              alt="Roman Catholic Diocese of Alaminos"
+              src={revisedRegistry ? parishConnectLogoUrl : dioceseSrc}
+              alt={revisedRegistry ? 'Parish Connect' : 'Roman Catholic Diocese of Alaminos'}
               decoding="async"
             />
           </div>
 
           <div className="pc-certificate-header-text">
             <p className="pc-certificate-diocese">{diocese}</p>
-            <p className="pc-certificate-parish">{parishName}</p>
+            <p className="pc-certificate-parish">{revisedRegistry ? 'IMMACULATE CONCEPTION OF THE VIRGIN MARY PARISH' : parishName}</p>
             <p className="pc-certificate-address">{parishAddress}</p>
           </div>
 
           <div className="pc-certificate-logo-slot">
-            <img
+            {(!revisedRegistry || certificateRightLogoUrl) && <img
               className="pc-certificate-logo"
-              src={parishSrc}
+              src={revisedRegistry ? certificateRightLogoUrl : parishSrc}
               alt="Parish logo"
               decoding="async"
-            />
+            />}
           </div>
         </header>
 

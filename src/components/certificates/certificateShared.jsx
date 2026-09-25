@@ -15,7 +15,28 @@ export function longDatePhrase(dayOrdinal, monthYear) {
   return dayOrdinal || monthYear || ''
 }
 
-export function CertificateRecordCard({ recordNumber, dateIssued }) {
+export function CertificateRecordCard({ recordNumber, dateIssued, registryInformation }) {
+  if (registryInformation) {
+    const value = (input) => String(input ?? '').trim() || 'N/A'
+    const padded = (input, digits) => input ? String(input).padStart(digits, '0') : 'N/A'
+    const fields = [
+      ['Record Number', value(registryInformation.recordNumber)],
+      ['Record Year', value(registryInformation.recordYear)],
+      ['Book No.', value(registryInformation.bookNumber).toUpperCase()],
+      ['Line No.', padded(registryInformation.lineNumber, 2)],
+      ['Page No.', padded(registryInformation.pageNumber, 3)],
+    ]
+    return (
+      <section className="pc-certificate-record-card pc-certificate-registry-grid" aria-label="Record information">
+        {fields.map(([label, content]) => (
+          <div className="pc-certificate-record-item" key={label}>
+            <span className="pc-certificate-record-label">{label}</span>
+            <span className="pc-certificate-record-value">{content}</span>
+          </div>
+        ))}
+      </section>
+    )
+  }
   return (
     <section
       className="pc-certificate-record-card"

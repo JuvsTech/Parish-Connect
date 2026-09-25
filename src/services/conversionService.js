@@ -1,3 +1,4 @@
+import { createAuditLog } from './auditLogService'
 import { archiveRecord } from './archiveService'
 import {
   addDoc,
@@ -36,6 +37,9 @@ export const conversionCollectionRef = collection(db, COLLECTIONS.CONVERSION)
  * {
  *   recordNumber: number,
  *   recordYear: number,
+ *   bookNumber: string,
+ *   lineNumber: number | null,
+ *   pageNumber: number | null,
  *   recordType: 'new' | 'old',
  *   dateOfReception: Timestamp | Date,
  *   receivingMinister: string,
@@ -67,6 +71,9 @@ export const conversionCollectionRef = collection(db, COLLECTIONS.CONVERSION)
 export const CONVERSION_FIELDS = {
   RECORD_NUMBER: 'recordNumber',
   RECORD_YEAR: 'recordYear',
+  BOOK_NUMBER: 'bookNumber',
+  LINE_NUMBER: 'lineNumber',
+  PAGE_NUMBER: 'pageNumber',
   RECORD_TYPE: 'recordType',
   DATE_OF_RECEPTION: 'dateOfReception',
   RECEIVING_MINISTER: 'receivingMinister',
@@ -164,6 +171,10 @@ function validateConversionPayload(data) {
     throw new Error(MESSAGES.ERROR.CONVERSION_REQUIRED_FIELDS)
   }
 
+  if (!/\p{L}/u.test(String(data.originalBaptismDenomination ?? ''))) {
+    throw new Error('Enter a denomination containing letters, not only numbers or symbols.')
+  }
+
   const recordNumber = Number(data.recordNumber)
   const recordYear = Number(data.recordYear)
 
@@ -193,6 +204,9 @@ export function buildConversionDocument(data = {}) {
   return {
     recordNumber: Number(normalized.recordNumber),
     recordYear: Number(normalized.recordYear),
+    bookNumber: normalizeText(normalized.bookNumber).toUpperCase(),
+    lineNumber: Number.isInteger(Number(normalized.lineNumber)) && Number(normalized.lineNumber) > 0 ? Number(normalized.lineNumber) : null,
+    pageNumber: Number.isInteger(Number(normalized.pageNumber)) && Number(normalized.pageNumber) > 0 ? Number(normalized.pageNumber) : null,
     recordType: normalizeRecordType(normalized.recordType),
     dateOfReception: normalizeDateValue(normalized.dateOfReception),
     receivingMinister: toProperCase(normalized.receivingMinister),
@@ -351,6 +365,7 @@ function isFriendlyConversionError(error) {
     error.message === MESSAGES.ERROR.CONVERSION_REQUIRED_FIELDS ||
     error.message === MESSAGES.ERROR.CONVERSION_CREATE_VALIDATION ||
     error.message === MESSAGES.ERROR.CONVERSION_DUPLICATE_RECORD ||
+    error.message.includes('Enter a denomination containing letters') ||
     error.message.includes('Record number') ||
     error.message.includes('Record year')
   )
@@ -438,6 +453,8 @@ export async function createConversionRecord(data, options = {}) {
       console.error('Failed to sync conversion calendar event:', syncError)
     }
 
+    await createAuditLog({ action: 'Created Conversion Record', module: 'Conversion', details: 'Record ID: ' + docRef.id }).catch(() => null)
+
     return mapConversionDocToUi({
       id: docRef.id,
       ...payload,
@@ -466,6 +483,9 @@ export async function updateConversionRecord(id, data, options = {}) {
       throw new Error(MESSAGES.ERROR.CONVERSION_UPDATE)
     }
 
+    const currentSnapshot = await getDoc(doc(db, COLLECTIONS.CONVERSION, id))
+    const currentData = currentSnapshot.exists() ? currentSnapshot.data() : {}
+
     const normalized = normalizeIncomingPayload(data)
     validateConversionPayload(normalized)
 
@@ -493,6 +513,9 @@ export async function updateConversionRecord(id, data, options = {}) {
     }
 
     delete payload.createdBy
+    if (!Object.prototype.hasOwnProperty.call(data, 'bookNumber')) delete payload.bookNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'lineNumber')) delete payload.lineNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'pageNumber')) delete payload.pageNumber
 
     const docRef = doc(db, COLLECTIONS.CONVERSION, id)
     await updateDoc(docRef, payload)
@@ -503,8 +526,11 @@ export async function updateConversionRecord(id, data, options = {}) {
       console.error('Failed to sync conversion calendar event:', syncError)
     }
 
+    await createAuditLog({ action: 'Updated Conversion Record', module: 'Conversion', details: 'Record ID: ' + id }).catch(() => null)
+
     return mapConversionDocToUi({
       id,
+      ...currentData,
       ...payload,
     })
   } catch (error) {

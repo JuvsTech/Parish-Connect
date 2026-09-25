@@ -1,3 +1,4 @@
+import { createAuditLog } from './auditLogService'
 import { archiveRecord } from './archiveService'
 import {
   addDoc,
@@ -37,6 +38,9 @@ export const deathCollectionRef = collection(db, COLLECTIONS.DEATH)
  * {
  *   recordNumber: number,
  *   recordYear: number,
+ *   bookNumber: string,
+ *   lineNumber: number | null,
+ *   pageNumber: number | null,
  *   recordType: 'new' | 'old',
  *   minister: string,
  *   dateOfDeath: Timestamp | Date,
@@ -71,6 +75,9 @@ export const deathCollectionRef = collection(db, COLLECTIONS.DEATH)
 export const DEATH_FIELDS = {
   RECORD_NUMBER: 'recordNumber',
   RECORD_YEAR: 'recordYear',
+  BOOK_NUMBER: 'bookNumber',
+  LINE_NUMBER: 'lineNumber',
+  PAGE_NUMBER: 'pageNumber',
   RECORD_TYPE: 'recordType',
   MINISTER: 'minister',
   DATE_OF_DEATH: 'dateOfDeath',
@@ -234,6 +241,9 @@ export function buildDeathDocument(data = {}) {
   return {
     recordNumber: Number(normalized.recordNumber),
     recordYear: Number(normalized.recordYear),
+    bookNumber: normalizeText(normalized.bookNumber).toUpperCase(),
+    lineNumber: Number.isInteger(Number(normalized.lineNumber)) && Number(normalized.lineNumber) > 0 ? Number(normalized.lineNumber) : null,
+    pageNumber: Number.isInteger(Number(normalized.pageNumber)) && Number(normalized.pageNumber) > 0 ? Number(normalized.pageNumber) : null,
     recordType: normalizeRecordType(normalized.recordType),
     minister: toProperCase(normalized.minister),
     dateOfDeath: normalizeDateValue(normalized.dateOfDeath),
@@ -485,6 +495,8 @@ export async function createDeathRecord(data, options = {}) {
       console.error('Failed to sync death calendar event:', syncError)
     }
 
+    await createAuditLog({ action: 'Created Death Record', module: 'Death', details: 'Record ID: ' + docRef.id }).catch(() => null)
+
     return mapDeathDocToUi({
       id: docRef.id,
       ...payload,
@@ -544,6 +556,9 @@ export async function updateDeathRecord(id, data, options = {}) {
 
     delete payload.createdBy
     delete payload.time
+    if (!Object.prototype.hasOwnProperty.call(data, 'bookNumber')) delete payload.bookNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'lineNumber')) delete payload.lineNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'pageNumber')) delete payload.pageNumber
 
     const docRef = doc(db, COLLECTIONS.DEATH, id)
     await updateDoc(docRef, payload)
@@ -554,8 +569,11 @@ export async function updateDeathRecord(id, data, options = {}) {
       console.error('Failed to sync death calendar event:', syncError)
     }
 
+    await createAuditLog({ action: 'Updated Death Record', module: 'Death', details: 'Record ID: ' + id }).catch(() => null)
+
     return mapDeathDocToUi({
       id,
+      ...currentData,
       ...payload,
       time: currentData.time,
     })

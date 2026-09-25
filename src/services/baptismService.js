@@ -1,3 +1,4 @@
+import { createAuditLog } from './auditLogService'
 import { archiveRecord } from './archiveService'
 import {
   addDoc,
@@ -6,6 +7,7 @@ import {
   getDoc,
   getDocs,
   serverTimestamp,
+  runTransaction,
   updateDoc,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
@@ -316,7 +318,7 @@ async function loadBaptismRecords() {
         return mapBaptismDocToUi({
           ...data,
           id: docSnap.id,
-          status: normalizeRecordStatus(data.status),
+          status: data.status,
         })
       })
       .sort((a, b) => {
@@ -482,6 +484,8 @@ export async function createBaptismRecord(data, options = {}) {
       console.error('Failed to sync baptism calendar event:', syncError)
     }
 
+    await createAuditLog({ action: 'Created Baptism Record', module: 'Baptism', details: 'Record ID: ' + docRef.id }).catch(() => null)
+
     return mapBaptismDocToUi({
       id: docRef.id,
       ...payload,
@@ -570,6 +574,8 @@ export async function updateBaptismRecord(id, data, options = {}) {
       console.error('Failed to sync baptism calendar event:', syncError)
     }
 
+    await createAuditLog({ action: 'Updated Baptism Record', module: 'Baptism', details: 'Record ID: ' + id }).catch(() => null)
+
     return mapBaptismDocToUi({
       id,
       ...payload,
@@ -598,4 +604,25 @@ export async function updateBaptismRecord(id, data, options = {}) {
 
 export async function archiveBaptismRecord(id, reason) {
   return archiveRecord(COLLECTIONS.BAPTISM, id, reason)
+}
+
+/** Explicit lifecycle transition only; never inferred from the baptism date. */
+export async function completeBaptismRecord(id, options = {}) {
+  if (!id) throw new Error('Baptism record id is required.')
+  const ref = doc(db, COLLECTIONS.BAPTISM, id)
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(ref)
+    if (!snapshot.exists()) throw new Error('Baptism record no longer exists.')
+    const current = snapshot.data()
+    if (current.archived === true) throw new Error('Archived records cannot be marked completed.')
+    if (current.status !== STATUS.SCHEDULED) {
+      throw new Error('Only scheduled baptism records can be marked completed. Refresh the records and try again.')
+    }
+    transaction.update(ref, {
+      status: STATUS.COMPLETED,
+      updatedAt: serverTimestamp(),
+      updatedBy: options.userEmail || '',
+    })
+  })
+  await createAuditLog({ action: 'Marked Baptism Record Completed', module: 'Baptism', details: 'Record ID: ' + id }).catch(() => null)
 }

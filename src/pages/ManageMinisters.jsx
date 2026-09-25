@@ -444,7 +444,7 @@ function MinisterFormDialog({ open, mode, minister, onClose, onSave, saving }) {
       maxWidth="sm"
       slotProps={{ paper: {
         sx: {
-          borderRadius: 4,
+          borderRadius: '16px',
           border: '1px solid',
           borderColor: 'divider',
           boxShadow: '0 16px 40px rgba(11, 61, 145, 0.12)',
@@ -669,7 +669,7 @@ function ViewMinisterDialog({ open, minister, onClose }) {
       scroll="paper"
       slotProps={{ paper: {
         sx: {
-          borderRadius: 4,
+          borderRadius: '16px',
           border: '1px solid',
           borderColor: 'divider',
           boxShadow: '0 16px 40px rgba(11, 61, 145, 0.12)',
@@ -973,7 +973,7 @@ export default function ManageMinisters() {
       <Card
         sx={{
           mb: 2.75,
-          borderRadius: 3,
+          borderRadius: '12px',
           p: { xs: 1.5, sm: 1.75 },
         }}
       >
@@ -1125,7 +1125,7 @@ export default function ManageMinisters() {
         </Stack>
       </Card>
 
-      <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
           <Box
             sx={{

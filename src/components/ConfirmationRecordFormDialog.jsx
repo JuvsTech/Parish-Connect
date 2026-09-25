@@ -220,6 +220,16 @@ function validateConfirmationForm(
   const errors = {}
 
   if (requireManualRecordNumber) {
+    const roman = String(form.bookNumber || '').trim().toUpperCase()
+    if (roman && !/^(?=[MDCLXVI]+$)M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(roman)) {
+      errors.bookNumber = 'Use a valid Roman numeral (for example: I, IV, XII).'
+    }
+    if (String(form.lineNumber || '').trim() && !isPositiveInteger(form.lineNumber)) {
+      errors.lineNumber = 'Line No. must be a positive whole number.'
+    }
+    if (String(form.pageNumber || '').trim() && !isPositiveInteger(form.pageNumber)) {
+      errors.pageNumber = 'Page No. must be a positive whole number.'
+    }
     if (!String(form.recordYear ?? '').trim()) {
       errors.recordYear = VALIDATION_MESSAGES.REQUIRED
     } else if (!isValidFourDigitYear(form.recordYear)) {
@@ -274,11 +284,6 @@ function validateConfirmationForm(
   if (!String(form.placeOfBaptism ?? '').trim()) {
     errors.placeOfBaptism = VALIDATION_MESSAGES.REQUIRED
   }
-
-  const roman = String(form.bookNumber || '').trim().toUpperCase()
-  if (roman && !/^(?=[MDCLXVI])M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(roman)) errors.bookNumber = 'Use a valid Roman numeral.'
-  if (String(form.lineNumber || '').trim() && !isPositiveInteger(form.lineNumber)) errors.lineNumber = 'Line No. must be a positive whole number.'
-  if (String(form.pageNumber || '').trim() && !isPositiveInteger(form.pageNumber)) errors.pageNumber = 'Page No. must be a positive whole number.'
 
   applyNameError(errors, 'fatherFirstName', form.fatherFirstName, true)
   applyNameError(errors, 'fatherMiddleName', form.fatherMiddleName, false)
@@ -434,6 +439,18 @@ function ConfirmationRecordFormDialog({
     }
   }
 
+  function handleRegistryNumberChange(field) {
+    return (event) => setForm((prev) => ({
+      ...prev,
+      [field]: event.target.value.replace(/[^\d]/g, ''),
+    }))
+  }
+
+  function handleBookNumberChange(event) {
+    const value = event.target.value.toUpperCase().replace(/[^MDCLXVI]/g, '')
+    setForm((prev) => ({ ...prev, bookNumber: value }))
+  }
+
   function handleRecordNumberChange(event) {
     const value = event.target.value.replace(/[^\d]/g, '')
     setForm((prev) => ({ ...prev, recordNumber: value }))
@@ -498,9 +515,6 @@ function ConfirmationRecordFormDialog({
         'confirmation',
         form.requirements,
       ),
-      bookNumber: form.bookNumber.trim().toUpperCase(),
-      lineNumber: form.lineNumber.trim() ? Number(form.lineNumber) : null,
-      pageNumber: form.pageNumber.trim() ? Number(form.pageNumber) : null,
       baptismalCertificateBookNumber: form.baptismalCertificateBookNumber.trim() || 'N/A',
       baptismalCertificateLineNumber: form.baptismalCertificateLineNumber.trim() || 'N/A',
       baptismalCertificatePageNumber: form.baptismalCertificatePageNumber.trim() || 'N/A',
@@ -512,6 +526,9 @@ function ConfirmationRecordFormDialog({
       if (!parts) return
       payload.recordYear = parts.recordYear
       payload.recordNumber = parts.recordNumber
+      if (form.bookNumber.trim()) payload.bookNumber = form.bookNumber.trim().toUpperCase()
+      if (form.lineNumber.trim()) payload.lineNumber = Number(form.lineNumber)
+      if (form.pageNumber.trim()) payload.pageNumber = Number(form.pageNumber)
     }
     if (!isEdit && workflow === 'new' && form.time.trim()) payload.time = form.time.trim()
 
@@ -542,7 +559,7 @@ function ConfirmationRecordFormDialog({
         scroll="paper"
         slotProps={{ paper: {
           sx: {
-            borderRadius: 4,
+            borderRadius: '16px',
             border: '1px solid',
             borderColor: 'divider',
             boxShadow: '0 16px 40px rgba(11, 61, 145, 0.12)',
@@ -596,13 +613,13 @@ function ConfirmationRecordFormDialog({
 
           {(isOldRecord || isEdit) && (
             <FormSection title="Record Information">
-              <Grid size={{ xs: 12, sm: 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
                   label="Record Number"
                   value={form.recordNumber}
-                  onChange={isOldRecord ? handleRecordNumberChange : undefined}
-                  onBlur={isOldRecord ? handleBlur('recordNumber') : undefined}
-                  error={isOldRecord && showError('recordNumber')}
+                  onChange={handleRecordNumberChange}
+                  onBlur={handleBlur('recordNumber')}
+                  error={showError('recordNumber')}
                   helperText={
                     isOldRecord && showError('recordNumber')
                       ? errors.recordNumber
@@ -612,7 +629,7 @@ function ConfirmationRecordFormDialog({
                   }
                   fullWidth
                   required={isOldRecord}
-                  disabled={saving || isEdit}
+                  disabled={saving}
                   inputMode="numeric"
                   sx={
                     isEdit
@@ -625,16 +642,7 @@ function ConfirmationRecordFormDialog({
                   }
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <TextField label="Book No." value={form.bookNumber} onChange={(event) => setForm((prev) => ({ ...prev, bookNumber: event.target.value.toUpperCase().replace(/[^MDCLXVI]/g, '') }))} onBlur={handleBlur('bookNumber')} error={showError('bookNumber')} helperText={showError('bookNumber') ? errors.bookNumber : 'Roman numeral'} fullWidth disabled={saving} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <TextField label="Line No." value={form.lineNumber ? String(form.lineNumber).padStart(2, '0') : ''} onChange={(event) => setForm((prev) => ({ ...prev, lineNumber: event.target.value.replace(/\D/g, '').slice(0, 2).replace(/^0+/, '') }))} onBlur={handleBlur('lineNumber')} error={showError('lineNumber')} helperText={showError('lineNumber') ? errors.lineNumber : '2-digit format'} fullWidth inputMode="numeric" disabled={saving} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <TextField label="Page No." value={form.pageNumber ? String(form.pageNumber).padStart(3, '0') : ''} onChange={(event) => setForm((prev) => ({ ...prev, pageNumber: event.target.value.replace(/\D/g, '').slice(0, 3).replace(/^0+/, '') }))} onBlur={handleBlur('pageNumber')} error={showError('pageNumber')} helperText={showError('pageNumber') ? errors.pageNumber : '3-digit format'} fullWidth inputMode="numeric" disabled={saving} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
                   label="Record Year"
                   value={form.recordYear}
@@ -642,7 +650,7 @@ function ConfirmationRecordFormDialog({
                   onBlur={handleBlur('recordYear')}
                   error={showError('recordYear')}
                   helperText={
-                    showError('recordYear')
+                    isOldRecord && showError('recordYear')
                       ? errors.recordYear
                       : isOldRecord
                         ? 'Enter the year from the parish registry book.'
@@ -662,6 +670,15 @@ function ConfirmationRecordFormDialog({
                       : undefined
                   }
                 />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField label="Book No." value={form.bookNumber} onChange={handleBookNumberChange} onBlur={handleBlur('bookNumber')} error={showError('bookNumber')} helperText={showError('bookNumber') ? errors.bookNumber : 'Roman numeral'} fullWidth disabled={saving} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField label="Line No." value={form.lineNumber ? String(form.lineNumber).padStart(2, '0') : ''} onChange={handleRegistryNumberChange('lineNumber')} onBlur={handleBlur('lineNumber')} error={showError('lineNumber')} helperText={showError('lineNumber') ? errors.lineNumber : '2-digit format'} fullWidth inputMode="numeric" disabled={saving} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField label="Page No." value={form.pageNumber ? String(form.pageNumber).padStart(3, '0') : ''} onChange={handleRegistryNumberChange('pageNumber')} onBlur={handleBlur('pageNumber')} error={showError('pageNumber')} helperText={showError('pageNumber') ? errors.pageNumber : '3-digit format'} fullWidth inputMode="numeric" disabled={saving} />
               </Grid>
             </FormSection>
           )}

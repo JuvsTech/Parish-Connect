@@ -131,7 +131,7 @@ function SectionCard({ title, children, sx }) {
     <Card
       sx={{
         height: 'auto',
-        borderRadius: 3,
+        borderRadius: '12px',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -142,6 +142,7 @@ function SectionCard({ title, children, sx }) {
         sx={{
           bgcolor: MARIAN_BLUE,
           minHeight: 42,
+          py: 1,
           px: { xs: 1.75, sm: 2 },
           display: 'flex',
           alignItems: 'center',
@@ -235,7 +236,7 @@ function MonthlyCalendar({
     <Card
       sx={{
         height: '100%',
-        borderRadius: 3,
+        borderRadius: '12px',
         minHeight: { xs: 360, md: 450 },
       }}
     >
@@ -593,7 +594,7 @@ function SummaryCard({ title, value, icon: Icon }) {
     <Card
       sx={{
         height: '100%',
-        borderRadius: 3,
+        borderRadius: '12px',
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
         '&:hover': {
           transform: 'translateY(-1px)',
@@ -1183,7 +1184,7 @@ export default function Dashboard() {
           </Typography>
         </Box>
       ) : error ? (
-        <Card sx={{ borderRadius: 3, p: 3, textAlign: 'center' }}>
+        <Card sx={{ borderRadius: '12px', p: 3, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ mb: 1, fontSize: '1.05rem' }}>
             {MESSAGES.ERROR.DASHBOARD_LOAD}
           </Typography>
@@ -1254,7 +1255,7 @@ export default function Dashboard() {
 
           <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ borderRadius: 3, height: '100%' }}>
+              <Card sx={{ borderRadius: '12px', height: '100%' }}>
                 <CardContent sx={{ p: 2.25, '&:last-child': { pb: 2.25 } }}>
                   <Stack
                     direction="row"
@@ -1297,7 +1298,7 @@ export default function Dashboard() {
               </Card>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ borderRadius: 3, height: '100%' }}>
+              <Card sx={{ borderRadius: '12px', height: '100%' }}>
                 <CardContent sx={{ p: 2.25, '&:last-child': { pb: 2.25 } }}>
                   <Typography
                     variant="subtitle2"

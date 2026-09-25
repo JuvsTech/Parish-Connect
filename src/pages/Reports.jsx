@@ -11,6 +11,7 @@ import {
   IconButton,
   InputLabel,
   MenuItem,
+  OutlinedInput,
   Select,
   Snackbar,
   Stack,
@@ -47,6 +48,7 @@ import {
 } from '../services/ministerService'
 import {
   generateSacramentalReport,
+  resolveSavedReportFilters,
   getReportYears,
   getRecentReports,
   getReportSummaryCounts,
@@ -64,7 +66,7 @@ function SummaryCard({ title, value, icon: Icon }) {
     <Card
       sx={{
         height: '100%',
-        borderRadius: 3,
+        borderRadius: '12px',
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
         '&:hover': {
           transform: 'translateY(-1px)',
@@ -318,11 +320,9 @@ export default function Reports() {
         })
         if (cancelled) return
         setMinisterOptions(list)
-        setMinister(null)
       } catch {
         if (!cancelled) {
           setMinisterOptions([])
-          setMinister(null)
         }
       } finally {
         if (!cancelled) setMinistersLoading(false)
@@ -384,18 +384,22 @@ export default function Reports() {
       setReportRows(result.rows)
 
       if (overrideFilters) {
+        if (overrideFilters.reportType !== reportType) reportTypeChangeRef.current = true
         setReportType(overrideFilters.reportType)
         setYear(String(overrideFilters.year))
         setMonth(overrideFilters.month || 'All Months')
         setMinister(
           overrideFilters.minister === 'All Ministers'
             ? 'All Ministers'
-            : overrideFilters.minister || null,
+            : overrideFilters.minister || 'All Ministers',
         )
       }
 
       setPreviewOpen(true)
-      showSnackbar(MESSAGES.SUCCESS.REPORT_GENERATED)
+      showSnackbar(
+        result.rows.length ? MESSAGES.SUCCESS.REPORT_GENERATED : 'No records were found for the selected criteria.',
+        result.rows.length ? 'success' : 'info',
+      )
       await loadCounts()
     } catch (error) {
       setReportSummary(null)
@@ -428,21 +432,12 @@ export default function Reports() {
   }
 
   async function handleViewRecent(report) {
-    const filters = report.appliedFilters
-    if (!filters?.reportType || !filters?.year) {
-      showSnackbar('This report cannot be reopened from history.', 'error')
-      return
+    try {
+      const filters = resolveSavedReportFilters(report)
+      await handleGenerateReport({ ...filters, generatedBy: generatedByLabel })
+    } catch (error) {
+      showSnackbar(error.message, 'error')
     }
-    await handleGenerateReport({
-      reportType: filters.reportType,
-      year: filters.year, 
-      month: filters.month || 'All Months',
-      minister:
-        filters.minister === 'All Ministers'
-          ? 'All Ministers'
-          : filters.minister || '',
-      generatedBy: generatedByLabel,
-    })
   }
 
   return (
@@ -460,7 +455,7 @@ export default function Reports() {
         ))}
       </Grid>
 
-      <Card sx={{ borderRadius: 3, mb: 2.75 }}>
+      <Card sx={{ borderRadius: '12px', mb: 2.75 }}>
         <CardContent
           sx={{
             p: { xs: 2.25, sm: 2.75 },
@@ -514,6 +509,8 @@ export default function Reports() {
                   value={reportType}
                   onChange={(event) => setReportType(event.target.value)}
                   disabled={generating}
+                  displayEmpty
+                  input={<OutlinedInput notched label="Report Type" />}
                 >
                   {REPORT_TYPE_OPTIONS.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
@@ -532,8 +529,10 @@ export default function Reports() {
                   value={year}
                   onChange={(event) => setYear(event.target.value)}
                   disabled={generating}
+                  displayEmpty
+                  input={<OutlinedInput notched label="Year" />}
                 >
-                  {yearOptions.map((option) => (
+                  {Array.from(new Set([...yearOptions, year])).map((option) => (
                     <MenuItem key={option} value={option}>
                       {option}
                     </MenuItem>
@@ -550,6 +549,8 @@ export default function Reports() {
                   value={month}
                   onChange={(event) => setMonth(event.target.value)}
                   disabled={generating}
+                  displayEmpty
+                  input={<OutlinedInput notched label="Month" />}
                 >
                   {REPORT_MONTH_OPTIONS.map((option) => (
                     <MenuItem key={option} value={option}>
@@ -565,12 +566,28 @@ export default function Reports() {
                 <Select
                   labelId="report-minister-label"
                   label="Minister"
-                  value={minister}
-                  onChange={(event) => setMinister(event.target.value)}
+                  value={minister ?? ''}
+                  onChange={(event) => setMinister(event.target.value || null)}
                   disabled={generating || ministersLoading}
                   error={false}
+                  displayEmpty
+                  input={<OutlinedInput notched label="Minister" />}
+                  renderValue={(current) => {
+                    if (!current) {
+                      return (
+                        <Typography component="span" color="text.secondary">
+                          Select Minister
+                        </Typography>
+                      )
+                    }
+                    return current
+                  }}
                 >
+                  <MenuItem value="" disabled sx={{ display: 'none' }} />
                   <MenuItem value="All Ministers">All Ministers</MenuItem>
+                  {minister && minister !== 'All Ministers' && !ministerOptions.some(item => formatMinisterDisplayName(item) === minister) && (
+                    <MenuItem value={minister}>{minister}</MenuItem>
+                  )}
                   {ministerOptions.map((item) => {
                     const label = formatMinisterDisplayName(item)
                     return (
@@ -621,7 +638,7 @@ export default function Reports() {
         Recent Reports
       </Typography>
 
-      <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         <TableContainer sx={{ overflowX: 'auto' }}>
           <Table size="medium" sx={{ minWidth: 760 }}>
             <TableHead>

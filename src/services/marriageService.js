@@ -37,6 +37,9 @@ export const marriageCollectionRef = collection(db, COLLECTIONS.MARRIAGE)
 export const MARRIAGE_FIELDS = {
   RECORD_NUMBER: 'recordNumber',
   RECORD_YEAR: 'recordYear',
+  BOOK_NUMBER: 'bookNumber',
+  LINE_NUMBER: 'lineNumber',
+  PAGE_NUMBER: 'pageNumber',
   RECORD_TYPE: 'recordType',
   MINISTER: 'minister',
   MARRIAGE_DATE: 'marriageDate',
@@ -240,6 +243,9 @@ export function buildMarriageDocument(data = {}) {
   return {
     recordNumber: Number(normalized.recordNumber),
     recordYear: Number(normalized.recordYear),
+    bookNumber: normalizeText(normalized.bookNumber).toUpperCase(),
+    lineNumber: Number.isInteger(Number(normalized.lineNumber)) && Number(normalized.lineNumber) > 0 ? Number(normalized.lineNumber) : null,
+    pageNumber: Number.isInteger(Number(normalized.pageNumber)) && Number(normalized.pageNumber) > 0 ? Number(normalized.pageNumber) : null,
     recordType: normalizeRecordType(normalized.recordType),
     minister: toProperCase(normalized.minister),
     marriageDate: normalizeDateValue(normalized.marriageDate),
@@ -558,6 +564,9 @@ export async function updateMarriageRecord(id, data, options = {}) {
 
     delete payload.createdBy
     delete payload.time
+    if (!Object.prototype.hasOwnProperty.call(data, 'bookNumber')) delete payload.bookNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'lineNumber')) delete payload.lineNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'pageNumber')) delete payload.pageNumber
 
     const docRef = doc(db, COLLECTIONS.MARRIAGE, id)
     await updateDoc(docRef, payload)
@@ -572,6 +581,7 @@ export async function updateMarriageRecord(id, data, options = {}) {
 
     return mapMarriageDocToUi({
       id,
+      ...currentData,
       ...payload,
       time: currentData.time,
     })

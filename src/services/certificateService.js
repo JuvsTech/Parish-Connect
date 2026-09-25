@@ -41,7 +41,7 @@ import {
   formatCertificateIssuedDate,
   formatCertificateLongDate,
 } from '../utils/certificateDate'
-import dioceseLogoUrl from '../assets/certificates/diocese-logo.png'
+import dioceseLogoUrl from '../assets/certificates/diocese-logo-new.png'
 import parishSealUrl from '../assets/certificates/parish-seal.png'
 
 function blank(value) {
@@ -135,6 +135,13 @@ export function mapBaptismRecordToCertificate(record, options = {}) {
     type: CERTIFICATE_TYPES.BAPTISM,
     ...sharedChrome(CERTIFICATE_TITLES.baptism),
     recordId: record.id || '',
+    registryInformation: {
+      recordNumber: record.recordNumber,
+      recordYear: record.recordYear,
+      bookNumber: record.bookNumber,
+      lineNumber: record.lineNumber,
+      pageNumber: record.pageNumber,
+    },
     recordNumber: blank(
       formatBaptismRecordNumber(record.recordYear, record.recordNumber),
     ),
@@ -210,6 +217,13 @@ export function mapConfirmationRecordToCertificate(record, options = {}) {
     confirmationParishChurch: CERTIFICATE_PARISH_NAME,
     recordParishName: CERTIFICATE_PARISH_NAME,
     recordId: record.id || '',
+    registryInformation: {
+      recordNumber: record.recordNumber,
+      recordYear: record.recordYear,
+      bookNumber: record.bookNumber,
+      lineNumber: record.lineNumber,
+      pageNumber: record.pageNumber,
+    },
     recordNumber: blank(
       formatConfirmationRecordNumber(record.recordYear, record.recordNumber),
     ),
@@ -290,6 +304,13 @@ export function mapMarriageRecordToCertificate(record, options = {}) {
     type: CERTIFICATE_TYPES.MARRIAGE,
     ...sharedChrome(CERTIFICATE_TITLES.marriage),
     recordId: record.id || '',
+    registryInformation: {
+      recordNumber: record.recordNumber,
+      recordYear: record.recordYear,
+      bookNumber: record.bookNumber,
+      lineNumber: record.lineNumber,
+      pageNumber: record.pageNumber,
+    },
     recordNumber: blank(
       formatMarriageRecordNumber(record.recordYear, record.recordNumber),
     ),
@@ -432,6 +453,13 @@ export function mapDeathRecordToCertificate(record, options = {}) {
     type: CERTIFICATE_TYPES.DEATH,
     ...sharedChrome(CERTIFICATE_TITLES.death),
     recordId: record.id || '',
+    registryInformation: {
+      recordNumber: record.recordNumber,
+      recordYear: record.recordYear,
+      bookNumber: record.bookNumber,
+      lineNumber: record.lineNumber,
+      pageNumber: record.pageNumber,
+    },
     recordNumber: blank(
       formatDeathRecordNumber(record.recordYear, record.recordNumber),
     ),

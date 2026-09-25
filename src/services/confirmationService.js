@@ -1,3 +1,4 @@
+import { createAuditLog } from './auditLogService'
 import { archiveRecord } from './archiveService'
 import {
   addDoc,
@@ -497,6 +498,8 @@ export async function createConfirmationRecord(data) {
       console.error('Failed to sync confirmation calendar event:', syncError)
     }
 
+    await createAuditLog({ action: 'Created Confirmation Record', module: 'Confirmation', details: 'Record ID: ' + docRef.id }).catch(() => null)
+
     return mapConfirmationDocToUi({
       id: docRef.id,
       ...payload,
@@ -562,6 +565,9 @@ export async function updateConfirmationRecord(id, data) {
 
     if (!Object.prototype.hasOwnProperty.call(data, 'birthDate') && !Object.prototype.hasOwnProperty.call(data, 'dateOfBirth')) delete payload.dateOfBirth
     delete payload.time
+    if (!Object.prototype.hasOwnProperty.call(data, 'bookNumber')) delete payload.bookNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'lineNumber')) delete payload.lineNumber
+    if (!Object.prototype.hasOwnProperty.call(data, 'pageNumber')) delete payload.pageNumber
 
     const docRef = doc(db, COLLECTIONS.CONFIRMATION, id)
     await updateDoc(docRef, payload)
@@ -572,8 +578,11 @@ export async function updateConfirmationRecord(id, data) {
       console.error('Failed to sync confirmation calendar event:', syncError)
     }
 
+    await createAuditLog({ action: 'Updated Confirmation Record', module: 'Confirmation', details: 'Record ID: ' + id }).catch(() => null)
+
     return mapConfirmationDocToUi({
       id,
+      ...currentData,
       ...payload,
       time: currentData.time,
     })

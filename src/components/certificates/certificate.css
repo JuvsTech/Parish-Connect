@@ -534,3 +534,54 @@
 /* Keep long certificate values within the existing page frame. */
 .pc-certificate-body { overflow-wrap: anywhere; }
 .pc-certificate-meta-value { min-width: 0; }
+
+/* Revised header and registry card: only the four mapped certificate types. */
+.pc-certificate-revised .pc-certificate-header {
+  grid-template-columns: 20mm minmax(0, 1fr) 20mm;
+  column-gap: 2mm;
+}
+.pc-certificate-revised .pc-certificate-logo-slot {
+  width: 20mm;
+  height: 26mm;
+}
+.pc-certificate-revised .pc-certificate-logo {
+  width: 20mm;
+  height: 20mm;
+}
+.pc-certificate-revised .pc-certificate-parish {
+  white-space: nowrap;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin-top: 2.4mm;
+  line-height: 1.3;
+}
+.pc-certificate-revised .pc-certificate-diocese {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 9pt;
+  letter-spacing: 0;
+}
+.pc-certificate-revised .pc-certificate-address {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 9pt;
+  margin-top: 2mm;
+}
+.pc-certificate-registry-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.pc-certificate-registry-grid .pc-certificate-record-item {
+  min-width: 0;
+  padding: 3mm 1.5mm;
+}
+.pc-certificate-registry-grid .pc-certificate-record-item + .pc-certificate-record-item {
+  border-left: 0.6pt solid var(--cert-line);
+}
+.pc-certificate-registry-grid .pc-certificate-record-label {
+  font-size: 7.5pt;
+  letter-spacing: 0;
+}
+.pc-certificate-registry-grid .pc-certificate-record-value {
+  overflow-wrap: anywhere;
+}

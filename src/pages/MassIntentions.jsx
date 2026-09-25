@@ -538,7 +538,7 @@ export default function MassIntentions() {
         subtitle="Manage parish Mass Intention requests and schedules."
       />
 
-      <Card sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 3 }}>
+      <Card sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: '12px' }}>
         <Stack
           direction={{ xs: 'column', md: 'row' }}
           spacing={1.5}

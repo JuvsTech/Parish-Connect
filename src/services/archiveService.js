@@ -1,3 +1,4 @@
+import { createAuditLog } from './auditLogService'
 import { collection, doc, getDocs, query, runTransaction, serverTimestamp, where } from 'firebase/firestore'
 import { auth, db } from '../firebase/config'
 import { COLLECTIONS } from '../constants'
@@ -61,6 +62,16 @@ async function changeArchiveState(collectionName, id, reason, recovering, access
       archived: true, archivedAt: serverTimestamp(), archiveReason: trimmedReason,
     })
   })
+  const module = {
+    [COLLECTIONS.BAPTISM]: 'Baptism', [COLLECTIONS.CONFIRMATION]: 'Confirmation',
+    [COLLECTIONS.MARRIAGE]: 'Marriage', [COLLECTIONS.DEATH]: 'Death',
+    [COLLECTIONS.CONVERSION]: 'Conversion',
+  }[collectionName]
+  await createAuditLog({
+    action: (recovering ? 'Recovered ' : 'Archived ') + module + ' Record',
+    module, performedBy: user.email || user.uid, performedByUid: user.uid,
+    details: 'Record ID: ' + id,
+  }).catch(() => null)
   return true
 }
 

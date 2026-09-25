@@ -24,6 +24,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  MenuItem,
   Tooltip,
   Typography,
 } from '@mui/material'
@@ -53,6 +54,7 @@ import {
 } from '../components/recordUi'
 import {
   createBaptismRecord,
+  completeBaptismRecord,
   archiveBaptismRecord,
   getBaptismRecords,
   updateBaptismRecord,
@@ -150,6 +152,7 @@ function formatGodparents(godparents) {
 
 const EMPTY_FILTERS = {
   recordYears: [],
+  books: [],
   genders: [],
   baptismYears: [],
   legitimacies: [],
@@ -221,7 +224,7 @@ function ViewBaptismDialog({ open, record, onClose }) {
       scroll="paper"
       slotProps={{ paper: {
         sx: {
-          borderRadius: 4,
+          borderRadius: '16px',
           border: '1px solid',
           borderColor: 'divider',
           boxShadow: '0 16px 40px rgba(11, 61, 145, 0.12)',
@@ -270,7 +273,7 @@ function ViewBaptismDialog({ open, record, onClose }) {
             bgcolor: '#FFFFFF',
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 3,
+            borderRadius: '12px',
             px: { xs: 2, sm: 3 },
             py: { xs: 2.25, sm: 2.75 },
           }}
@@ -508,9 +511,11 @@ export default function BaptismRecords() {
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [filterAnchorEl, setFilterAnchorEl] = useState(null)
   const [records, setRecords] = useState([])
+  const [nameSort, setNameSort] = useState('default')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [completionRecord, setCompletionRecord] = useState(null)
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
@@ -580,6 +585,7 @@ export default function BaptismRecords() {
 
   const filterOptions = useMemo(() => {
     return {
+      books: uniqueSortedValues(records.map(record => String(record.bookNumber ?? '').trim().toUpperCase()).filter(value => value && value !== 'N/A' && value !== '-')),
       recordYears: uniqueSortedValues(
         records.map((record) =>
           record.recordYear != null && record.recordYear !== ''
@@ -602,7 +608,8 @@ export default function BaptismRecords() {
   const filteredRecords = useMemo(() => {
     const queryText = search.trim().toLowerCase()
 
-    return records.filter((record) => {
+    const matches = records.filter((record) => {
+      if (filters.books.length && !filters.books.includes(String(record.bookNumber ?? '').trim().toUpperCase())) return false
       if (
         filters.recordYears.length > 0 &&
         !filters.recordYears.includes(String(record.recordYear ?? ''))
@@ -681,7 +688,16 @@ export default function BaptismRecords() {
         .toLowerCase()
         .includes(queryText)
     })
-  }, [records, filters, search])
+    if (nameSort === 'default') return matches
+    return matches.sort((a, b) => {
+      const keys = ["childLastName","childFirstName","childMiddleName","childSuffix"]
+      for (const key of keys) {
+        const comparison = String(a[key] ?? '').trim().localeCompare(String(b[key] ?? '').trim(), undefined, { sensitivity: 'base', numeric: true })
+        if (comparison) return nameSort.endsWith('desc') ? -comparison : comparison
+      }
+      return 0
+    })
+  }, [records, filters, search, nameSort])
 
   function handleOpenFilters(event) {
     setFilterAnchorEl(event.currentTarget)
@@ -735,6 +751,21 @@ export default function BaptismRecords() {
     setFormOpen(true)
   }
   function handleOpenDelete(record) { setSelectedRecord(record); setDeleteVerificationOpen(true) }
+  async function handleConfirmCompletion() {
+    if (saving || !completionRecord) return
+    setSaving(true)
+    try {
+      await completeBaptismRecord(completionRecord.id, { userEmail: currentUser?.email || '' })
+      setCompletionRecord(null)
+      await loadRecords({ showLoader: false })
+      showSnackbar('Baptism record marked completed.', 'success')
+    } catch (error) {
+      showSnackbar(error.message || 'Unable to mark baptism completed.', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function handleCancelDeleteVerification() { if (!saving) { setDeleteVerificationOpen(false); setSelectedRecord(null) } }
   async function handleDeleteVerified(reason) { setSaving(true); try { await archiveBaptismRecord(selectedRecord.id, reason); setDeleteVerificationOpen(false); setSelectedRecord(null); await loadRecords({ showLoader: false }); showSnackbar('Baptismal record moved to Trash successfully.', 'success') } catch (error) { showSnackbar(error?.message || 'Failed to move to Trash: baptismal record.', 'error') } finally { setSaving(false) } }
 
@@ -802,7 +833,7 @@ export default function BaptismRecords() {
       <Card
         sx={{
           mb: 2.75,
-          borderRadius: 3,
+          borderRadius: '12px',
           p: { xs: 1.5, sm: 1.75 },
         }}
       >
@@ -928,6 +959,15 @@ export default function BaptismRecords() {
                         handleToggleFilter('recordYears', value)
                       }
                     />
+                    <TextField select label="Book No." size="small" fullWidth value={filters.books[0] || ''} onChange={event => setFilters(prev => ({ ...prev, books: event.target.value ? [event.target.value] : [] }))}>
+                      <MenuItem value="">All Books</MenuItem>
+                      {filterOptions.books.map(book => <MenuItem key={book} value={book}>{book}</MenuItem>)}
+                    </TextField>
+                    <TextField select label="Sort by" size="small" fullWidth value={nameSort} onChange={event => setNameSort(event.target.value)}>
+                      <MenuItem value="default">Existing/default record order</MenuItem>
+                      <MenuItem value="name-asc">Name A?Z</MenuItem>
+                      <MenuItem value="name-desc">Name Z?A</MenuItem>
+                    </TextField>
                     <FilterSection
                       title="Child Gender"
                       options={filterOptions.genders}
@@ -988,7 +1028,7 @@ export default function BaptismRecords() {
         </Stack>
       </Card>
 
-      <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
           <Box
             sx={{
@@ -1063,6 +1103,9 @@ export default function BaptismRecords() {
               <TableHead>
                 <TableRow>
                   <TableCell>Record No.</TableCell>
+                  <TableCell>Record Year</TableCell>
+                  <TableCell>Book No.</TableCell>
+                  <TableCell>Page No.</TableCell>
                   <TableCell>Full Name</TableCell>
                   <TableCell>Birth Date</TableCell>
                   <TableCell>Baptism Date</TableCell>
@@ -1093,6 +1136,9 @@ export default function BaptismRecords() {
                         {record.recordNo}
                       </Typography>
                     </TableCell>
+                    <TableCell>{record.recordYear || 'N/A'}</TableCell>
+                    <TableCell>{String(record.bookNumber ?? '').trim().toUpperCase() || 'N/A'}</TableCell>
+                    <TableCell>{record.pageNumber ? String(record.pageNumber).padStart(3, '0') : 'N/A'}</TableCell>
                     <TableCell>
                       <Typography
                         variant="body2"
@@ -1133,6 +1179,11 @@ export default function BaptismRecords() {
                        
                        
                       sx={{ alignItems: "center", justifyContent: "flex-end" }}>
+                        {record.status === 'scheduled' && record.archived !== true && (
+                          <Button size="small" disabled={saving} onClick={() => setCompletionRecord(record)}>
+                            Mark completed
+                          </Button>
+                        )}
                         <Tooltip title="View">
                           <IconButton
                             size="small"
@@ -1175,6 +1226,17 @@ export default function BaptismRecords() {
           </TableContainer>
         )}
       </Card>
+
+      <Dialog open={Boolean(completionRecord)} onClose={saving ? undefined : () => setCompletionRecord(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Mark baptism completed?</DialogTitle>
+        <DialogContent>
+          <Typography>Confirm that the baptism of {completionRecord?.childDisplayName} has been completed. This changes the record status from scheduled to completed.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={saving} onClick={() => setCompletionRecord(null)}>Cancel</Button>
+          <Button disabled={saving} variant="contained" onClick={handleConfirmCompletion}>Mark completed</Button>
+        </DialogActions>
+      </Dialog>
 
       {!loading && !error && filteredRecords.length > 0 && (
         <Typography

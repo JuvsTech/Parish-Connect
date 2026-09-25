@@ -99,6 +99,7 @@ const PRIMARY_ITEMS = [
     icon: Diversity3OutlinedIcon,
   },
   { to: '/reports', label: 'Reports', icon: AssessmentOutlinedIcon },
+  { to: '/audit-logs', label: 'Audit Logs', icon: AssessmentOutlinedIcon, adminOnly: true },
   { to: '/profile', label: 'Profile', icon: PersonOutlineOutlinedIcon },
 ]
 
@@ -168,6 +169,7 @@ function SidebarContent({
   onToggleCollapse,
   showCollapseButton,
 }) {
+  const { role } = useAuth()
   const location = useLocation()
   const sacramentalActive = SACRAMENTAL_ITEMS.some((item) =>
     location.pathname.startsWith(item.to),
@@ -309,7 +311,7 @@ function SidebarContent({
             />
           ))}
 
-        {PRIMARY_ITEMS.slice(1).map((item) => (
+        {PRIMARY_ITEMS.slice(1).filter(item => !item.adminOnly || ['admin', 'administrator'].includes(String(role || '').toLowerCase())).map((item) => (
           <NavItem
             key={item.to}
             {...item}

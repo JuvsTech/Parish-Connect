@@ -1,4 +1,4 @@
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { addDoc, collection, serverTimestamp, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore'
 import { auth, db } from '../firebase/config'
 import { COLLECTIONS } from '../constants'
 
@@ -35,5 +35,18 @@ export async function createAuditLog({
   } catch (error) {
     console.error('Failed to write audit log:', error)
     return null
+  }
+}
+
+/** Bounded chronological history. Rules restrict reads to active administrators. */
+export async function getAuditLogsPage(cursor = null) {
+  const constraints = [orderBy('timestamp', 'desc')]
+  if (cursor) constraints.push(startAfter(cursor))
+  constraints.push(limit(50))
+  const snapshot = await getDocs(query(collection(db, COLLECTIONS.AUDIT_LOGS), ...constraints))
+  return {
+    entries: snapshot.docs.map(item => ({ ...item.data(), id: item.id })),
+    cursor: snapshot.docs.at(-1) || null,
+    hasMore: snapshot.docs.length === 50,
   }
 }

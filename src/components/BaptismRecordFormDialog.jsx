@@ -653,7 +653,7 @@ function BaptismRecordFormDialog({
         scroll="paper"
         slotProps={{ paper: {
           sx: {
-            borderRadius: 4,
+            borderRadius: '16px',
             border: '1px solid',
             borderColor: 'divider',
             boxShadow: '0 16px 40px rgba(11, 61, 145, 0.12)',

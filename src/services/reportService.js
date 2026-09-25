@@ -17,6 +17,44 @@ import {
 } from '../constants/reportTypes'
 import { getSacramentalRecordCounts } from './dashboardService'
 
+
+/** Canonical query values; display labels never become query constraints. */
+export function normalizeReportFilters(filters = {}) {
+  const fail = () => { throw new Error('Saved report filters are incomplete or unsupported. Select filters and generate the report again.') }
+  if (!filters || typeof filters !== 'object' || Array.isArray(filters)) return fail()
+  const text = (value) => {
+    if (value == null) return ''
+    if (typeof value !== 'string' && typeof value !== 'number') return fail()
+    return String(value).trim()
+  }
+  const type = text(filters.reportType).toLowerCase()
+  const config = REPORT_TYPE_OPTIONS.find(item => item.value.toLowerCase() === type || item.label.toLowerCase() === type)
+  if (!config) return fail()
+  const yearText = text(filters.year)
+  const year = yearText.toLowerCase() === 'all years' ? 'All Years' : yearText
+  if (year !== 'All Years' && !/^\d{4}$/.test(year)) return fail()
+  if (year !== 'All Years' && Number(year) < 1000) return fail()
+  const monthText = text(filters.month)
+  const months = ['All Months', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  const month = monthText ? months.find(value => value.toLowerCase() === monthText.toLowerCase()) : 'All Months'
+  if (!month) return fail()
+  const ministerText = text(filters.minister)
+  return { ...filters, reportType: config.value, year, month, minister: ministerText.toLowerCase() === 'all ministers' ? '' : ministerText }
+}
+
+export function resolveSavedReportFilters(report = {}) {
+  const applied = report.appliedFilters
+  if (applied != null && (typeof applied !== 'object' || Array.isArray(applied))) {
+    throw new Error('Saved report filters are incomplete or unsupported. Select filters and generate the report again.')
+  }
+  return normalizeReportFilters({
+    reportType: applied?.reportType ?? report.reportType ?? report.reportTypeLabel,
+    year: applied?.year ?? report.year,
+    month: applied?.month ?? report.month,
+    minister: applied?.minister ?? report.minister,
+  })
+}
+
 function reportsRef() {
   return collection(db, COLLECTIONS.REPORTS)
 }
@@ -113,6 +151,7 @@ export async function getReportSummaryCounts() {
  * }} filters
  */
 export async function generateSacramentalReport(filters = {}) {
+  filters = normalizeReportFilters(filters)
   const reportType = String(filters.reportType || '').trim()
   const year = String(filters.year || '').trim()
   const monthLabel = filters.month || 'All Months'
@@ -242,12 +281,12 @@ export async function saveReportMetadata({
       generatedDate: summary.generatedAt.toISOString(),
       format: exportFormat,
       fileName: fileName || '',
-      appliedFilters: {
+      appliedFilters: normalizeReportFilters({
         reportType: summary.reportTypeValue,
         year: summary.year,
         month: summary.month,
         minister: summary.minister,
-      },
+      }),
       totalRecords: summary.totalRecords,
       createdAt: serverTimestamp(),
     }
@@ -280,7 +319,11 @@ export async function getRecentReports(max = 25) {
       return {
         id: docSnap.id,
         reportName: data.reportName || 'Untitled Report',
-        reportType: data.reportType || '',
+        reportType: data.reportType || data.reportTypeLabel || '',
+        reportTypeLabel: data.reportTypeLabel || '',
+        year: data.year,
+        month: data.month,
+        minister: data.minister,
         generatedBy: data.generatedBy || data.generatedByEmail || '—',
         generatedDate,
         format: data.format || '—',

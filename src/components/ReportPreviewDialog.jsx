@@ -85,7 +85,7 @@ export default function ReportPreviewDialog({
           height: { xs: '100%', sm: '90vh' },
           maxHeight: { xs: '100%', sm: '90vh' },
           m: { xs: 0, sm: 2 },
-          borderRadius: { xs: 0, sm: 3 },
+          borderRadius: { xs: 0, sm: '16px' },
           overflow: 'hidden',
         },
         '@media print': {
@@ -119,10 +119,10 @@ export default function ReportPreviewDialog({
         }}
       >
         <Stack
-          direction="row"
+          direction={{ xs: 'column', sm: 'row' }}
           spacing={1.25}
 
-        sx={{ alignItems: "center", justifyContent: "space-between" }}>
+        sx={{ alignItems: { xs: "stretch", sm: "center" }, justifyContent: "space-between" }}>
           <Box sx={{ minWidth: 0, flex: 1, pr: 1 }}>
             <Typography
               component="span"
@@ -132,8 +132,8 @@ export default function ReportPreviewDialog({
                 color: MARIAN_BLUE,
                 fontSize: { xs: '0.98rem', sm: '1.05rem' },
                 lineHeight: 1.3,
+                overflowWrap: 'anywhere',
               }}
-              noWrap
             >
               {dialogTitle}
             </Typography>
@@ -150,7 +150,7 @@ export default function ReportPreviewDialog({
           <Stack
             direction="row"
             spacing={1}
-            sx={{ alignItems: 'center', flexShrink: 0 }}
+            sx={{ alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', gap: 1 }}
           >
             <Button
               variant="outlined"
@@ -235,7 +235,7 @@ export default function ReportPreviewDialog({
               px: 2,
               textAlign: 'center',
               bgcolor: '#fff',
-              borderRadius: 3,
+              borderRadius: '12px',
               border: '1px solid',
               borderColor: 'divider',
             }}

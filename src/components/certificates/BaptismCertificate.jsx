@@ -77,6 +77,7 @@ export default function BaptismCertificate({ data }) {
       parishAddress={data.parishAddress}
       title={data.title}
       logos={data.logos}
+      revisedRegistry={Boolean(data.registryInformation)}
       className={data.layoutClassName || 'pc-certificate-baptism'}
     >
       <p className="pc-certificate-lead">
@@ -135,6 +136,7 @@ export default function BaptismCertificate({ data }) {
       </CertificateMetaRow>
 
       <CertificateRecordCard
+        registryInformation={data.registryInformation}
         recordNumber={data.recordNumber}
         dateIssued={data.dateIssued}
       />

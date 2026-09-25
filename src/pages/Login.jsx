@@ -389,7 +389,7 @@ export default function Login() {
                       lineHeight: 1.4,
                     }}
                   >
-                    Parish Connect v1.0
+                    Parish Connect v1.6
                   </Typography>
                   <Typography
                     variant="caption"

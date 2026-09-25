@@ -51,6 +51,9 @@ import {
 const FIELD_LABELS = {
   recordNumber: 'Record Number',
   recordYear: 'Record Year',
+  bookNumber: 'Book No.',
+  lineNumber: 'Line No.',
+  pageNumber: 'Page No.',
   firstName: 'First Name',
   middleName: 'Middle Name',
   lastName: 'Last Name',
@@ -75,6 +78,9 @@ const FIELD_LABELS = {
 const INITIAL_FORM = {
   recordYear: '',
   recordNumber: '',
+  bookNumber: '',
+  lineNumber: '',
+  pageNumber: '',
   firstName: '',
   middleName: '',
   lastName: '',
@@ -123,6 +129,9 @@ function recordToForm(record) {
       parts?.recordNumber != null
         ? String(parts.recordNumber)
         : blankToEmpty(record.recordNumber),
+    bookNumber: blankToEmpty(record.bookNumber).toUpperCase(),
+    lineNumber: record.lineNumber != null ? String(record.lineNumber) : '',
+    pageNumber: record.pageNumber != null ? String(record.pageNumber) : '',
     firstName: blankToEmpty(record.firstName),
     middleName: blankToEmpty(record.middleName),
     lastName: blankToEmpty(record.lastName),
@@ -179,6 +188,16 @@ function validateConversionForm(
   const errors = {}
 
   if (requireManualRecordNumber) {
+    const roman = String(form.bookNumber || '').trim().toUpperCase()
+    if (roman && !/^(?=[MDCLXVI]+$)M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(roman)) {
+      errors.bookNumber = 'Use a valid Roman numeral (for example: I, IV, XII).'
+    }
+    if (String(form.lineNumber || '').trim() && !isPositiveInteger(form.lineNumber)) {
+      errors.lineNumber = 'Line No. must be a positive whole number.'
+    }
+    if (String(form.pageNumber || '').trim() && !isPositiveInteger(form.pageNumber)) {
+      errors.pageNumber = 'Page No. must be a positive whole number.'
+    }
     if (!String(form.recordYear ?? '').trim()) {
       errors.recordYear = VALIDATION_MESSAGES.REQUIRED
     } else if (!isValidFourDigitYear(form.recordYear)) {
@@ -246,6 +265,8 @@ function validateConversionForm(
 
   if (!String(form.originalBaptismDenomination ?? '').trim()) {
     errors.originalBaptismDenomination = VALIDATION_MESSAGES.REQUIRED
+  } else if (!/\p{L}/u.test(String(form.originalBaptismDenomination))) {
+    errors.originalBaptismDenomination = 'Enter a denomination containing letters, not only numbers or symbols.'
   }
 
   if (!String(form.originalBaptismPlace ?? '').trim()) {
@@ -361,6 +382,18 @@ function ConversionRecordFormDialog({
     return () => setTouched((prev) => ({ ...prev, [field]: true }))
   }
 
+  function handleRegistryNumberChange(field) {
+    return (event) => setForm((prev) => ({
+      ...prev,
+      [field]: event.target.value.replace(/[^\d]/g, ''),
+    }))
+  }
+
+  function handleBookNumberChange(event) {
+    const value = event.target.value.toUpperCase().replace(/[^MDCLXVI]/g, '')
+    setForm((prev) => ({ ...prev, bookNumber: value }))
+  }
+
   function handleRecordNumberChange(event) {
     const value = event.target.value.replace(/[^\d]/g, '')
     setForm((prev) => ({ ...prev, recordNumber: value }))
@@ -424,6 +457,9 @@ function ConversionRecordFormDialog({
       if (!parts) return
       payload.recordYear = parts.recordYear
       payload.recordNumber = parts.recordNumber
+      if (form.bookNumber.trim()) payload.bookNumber = form.bookNumber.trim().toUpperCase()
+      if (form.lineNumber.trim()) payload.lineNumber = Number(form.lineNumber)
+      if (form.pageNumber.trim()) payload.pageNumber = Number(form.pageNumber)
     }
 
     try {
@@ -453,7 +489,7 @@ function ConversionRecordFormDialog({
         scroll="paper"
         slotProps={{ paper: {
           sx: {
-            borderRadius: 4,
+            borderRadius: '16px',
             border: '1px solid',
             borderColor: 'divider',
             boxShadow: '0 16px 40px rgba(11, 61, 145, 0.12)',
@@ -507,13 +543,13 @@ function ConversionRecordFormDialog({
 
           {(isOldRecord || isEdit) && (
             <FormSection title="Record Information">
-              <Grid size={{ xs: 12, sm: 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
                   label="Record Number"
                   value={form.recordNumber}
-                  onChange={isOldRecord ? handleRecordNumberChange : undefined}
-                  onBlur={isOldRecord ? handleBlur('recordNumber') : undefined}
-                  error={isOldRecord && showError('recordNumber')}
+                  onChange={handleRecordNumberChange}
+                  onBlur={handleBlur('recordNumber')}
+                  error={showError('recordNumber')}
                   helperText={
                     isOldRecord && showError('recordNumber')
                       ? errors.recordNumber
@@ -523,7 +559,7 @@ function ConversionRecordFormDialog({
                   }
                   fullWidth
                   required={isOldRecord}
-                  disabled={saving || isEdit}
+                  disabled={saving}
                   inputMode="numeric"
                   sx={
                     isEdit
@@ -536,13 +572,13 @@ function ConversionRecordFormDialog({
                   }
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
                   label="Record Year"
                   value={form.recordYear}
-                  onChange={isOldRecord ? handleRecordYearChange : undefined}
-                  onBlur={isOldRecord ? handleBlur('recordYear') : undefined}
-                  error={isOldRecord && showError('recordYear')}
+                  onChange={handleRecordYearChange}
+                  onBlur={handleBlur('recordYear')}
+                  error={showError('recordYear')}
                   helperText={
                     isOldRecord && showError('recordYear')
                       ? errors.recordYear
@@ -552,7 +588,7 @@ function ConversionRecordFormDialog({
                   }
                   fullWidth
                   required={isOldRecord}
-                  disabled={saving || isEdit}
+                  disabled={saving}
                   inputMode="numeric"
                   sx={
                     isEdit
@@ -564,6 +600,15 @@ function ConversionRecordFormDialog({
                       : undefined
                   }
                 />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField label="Book No." value={form.bookNumber} onChange={handleBookNumberChange} onBlur={handleBlur('bookNumber')} error={showError('bookNumber')} helperText={showError('bookNumber') ? errors.bookNumber : 'Roman numeral'} fullWidth disabled={saving} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField label="Line No." value={form.lineNumber ? String(form.lineNumber).padStart(2, '0') : ''} onChange={handleRegistryNumberChange('lineNumber')} onBlur={handleBlur('lineNumber')} error={showError('lineNumber')} helperText={showError('lineNumber') ? errors.lineNumber : '2-digit format'} fullWidth inputMode="numeric" disabled={saving} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField label="Page No." value={form.pageNumber ? String(form.pageNumber).padStart(3, '0') : ''} onChange={handleRegistryNumberChange('pageNumber')} onBlur={handleBlur('pageNumber')} error={showError('pageNumber')} helperText={showError('pageNumber') ? errors.pageNumber : '3-digit format'} fullWidth inputMode="numeric" disabled={saving} />
               </Grid>
             </FormSection>
           )}

@@ -24,8 +24,8 @@ const DEVELOPERS = [
 const DOCUMENTATION_TEAM = [
   { name: 'Janemell Renzae Clavero', role: 'Documentation Leader' },
   { name: 'Jan Karlo Navarrete', role: 'Data Gathering' },
-  { name: 'Daren Tobias', role: 'Documentation Gathering' },
-  { name: 'Nelson Valix', role: 'Documentation Team' }
+  { name: 'Daren Tobias', role: 'Data Gathering' },
+  { name: 'Nelson Valix', role: 'Data Gathering' }
 ]
 
 function CreditPerson({ name, role }) {
@@ -101,7 +101,7 @@ export default function AboutDialog({ open, onClose }) {
               variant="body2"
               sx={{ mt: 0.75, color: 'text.secondary', fontWeight: 600 }}
             >
-              Version 1.0.0
+              Version 1.6
             </Typography>
             <Typography
               variant="body2"
