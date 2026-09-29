@@ -895,3 +895,9 @@ export function ConversionNewRecordFormDialog(props) {
 }
 
 export default ConversionOldRecordFormDialog
+
+// Reuse manual-entry rules for the isolated historical Excel importer.
+export { validateConversionForm }
+export function getConversionImportForm() {
+  return structuredClone(INITIAL_FORM)
+}

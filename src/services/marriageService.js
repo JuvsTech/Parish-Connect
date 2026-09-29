@@ -604,3 +604,6 @@ export async function updateMarriageRecord(id, data, options = {}) {
 export async function archiveMarriageRecord(id, reason) {
   return archiveRecord(COLLECTIONS.MARRIAGE, id, reason)
 }
+
+// Shared validation for historical imports; existing create/edit behavior is unchanged.
+export { validateMarriagePayload }

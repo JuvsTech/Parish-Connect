@@ -1514,3 +1514,9 @@ export function MarriageNewRecordFormDialog(props) {
 }
 
 export default MarriageOldRecordFormDialog
+
+// Reuse manual-entry rules for the isolated historical Excel importer.
+export { validateMarriageForm }
+export function getMarriageImportForm() {
+  return structuredClone({ ...INITIAL_FORM, ...blankPartyForm('groom'), ...blankPartyForm('bride'), principalSponsors: [] })
+}

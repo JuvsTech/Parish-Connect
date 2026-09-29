@@ -1,3 +1,4 @@
+import SacramentImportActions from '../components/SacramentImportActions'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
@@ -890,6 +891,7 @@ export default function DeathRecords() {
             </Button>
           </Stack>
         </Stack>
+        <SacramentImportActions module="death" onImported={() => loadRecords({ showLoader: false })} />
       </Card>
 
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>

@@ -1,3 +1,4 @@
+import SacramentImportActions from '../components/SacramentImportActions'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import {
@@ -1026,6 +1027,7 @@ export default function BaptismRecords() {
             </Button>
           </Stack>
         </Stack>
+        <SacramentImportActions module="baptism" onImported={() => loadRecords({ showLoader: false })} />
       </Card>
 
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>

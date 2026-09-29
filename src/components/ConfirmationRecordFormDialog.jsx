@@ -1002,3 +1002,9 @@ export function ConfirmationNewRecordFormDialog(props) {
 }
 
 export default ConfirmationOldRecordFormDialog
+
+// Reuse manual-entry rules for the isolated historical Excel importer.
+export { validateConfirmationForm }
+export function getConfirmationImportForm() {
+  return structuredClone(INITIAL_FORM)
+}

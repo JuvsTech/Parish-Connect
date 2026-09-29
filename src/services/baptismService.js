@@ -626,3 +626,6 @@ export async function completeBaptismRecord(id, options = {}) {
   })
   await createAuditLog({ action: 'Marked Baptism Record Completed', module: 'Baptism', details: 'Record ID: ' + id }).catch(() => null)
 }
+
+// Shared validation for historical imports; existing create/edit behavior is unchanged.
+export { validateBaptismPayload }

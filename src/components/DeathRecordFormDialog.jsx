@@ -1184,3 +1184,10 @@ export function DeathNewRecordFormDialog(props) {
 }
 
 export default DeathOldRecordFormDialog
+
+// Reuse manual-entry rules for the isolated historical Excel importer.
+export { validateDeathForm }
+export function getDeathImportForm() {
+  return structuredClone(INITIAL_FORM)
+}
+export { STATUS_OPTIONS, RELATIONSHIP_OPTIONS, RECEIVED_LAST_SACRAMENTS_OPTIONS }

@@ -1,3 +1,4 @@
+import SacramentImportActions from '../components/SacramentImportActions'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
@@ -849,6 +850,7 @@ export default function ConfirmationRecords() {
             </Button>
           </Stack>
         </Stack>
+        <SacramentImportActions module="confirmation" onImported={() => loadRecords({ showLoader: false })} />
       </Card>
 
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
@@ -900,13 +902,18 @@ export default function ConfirmationRecords() {
               >
                 Try adjusting your search or filters.
               </Typography>
-              <Button
-                variant="outlined"
-                onClick={handleClearFilters}
-                sx={{ borderRadius: 3 }}
-              >
-                Clear Filters
-              </Button>
+              {(activeFilterCount > 0 || search.trim()) && (
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setSearch('')
+                    handleClearFilters()
+                  }}
+                  sx={{ borderRadius: 3 }}
+                >
+                  Clear search & filters
+                </Button>
+              )}
             </Box>
           ) : (
             <RecordsEmptyState icon={VerifiedOutlinedIcon} title="No confirmation records found" />

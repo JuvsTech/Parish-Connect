@@ -1,3 +1,4 @@
+import SacramentImportActions from '../components/SacramentImportActions'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
@@ -934,6 +935,7 @@ export default function MarriageRecords() {
             </Button>
           </Stack>
         </Stack>
+        <SacramentImportActions module="marriage" onImported={() => loadRecords({ showLoader: false })} />
       </Card>
 
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>

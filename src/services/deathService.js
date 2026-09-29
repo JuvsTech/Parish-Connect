@@ -596,3 +596,6 @@ export async function updateDeathRecord(id, data, options = {}) {
 export async function archiveDeathRecord(id, reason) {
   return archiveRecord(COLLECTIONS.DEATH, id, reason)
 }
+
+// Shared validation for historical imports; existing create/edit behavior is unchanged.
+export { validateDeathPayload }

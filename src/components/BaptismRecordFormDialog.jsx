@@ -1241,3 +1241,9 @@ export function BaptismNewRecordFormDialog(props) {
 }
 
 export default BaptismOldRecordFormDialog
+
+// Reuse manual-entry rules for the isolated historical Excel importer.
+export { validateBaptismForm }
+export function getBaptismImportForm() {
+  return structuredClone(INITIAL_FORM)
+}

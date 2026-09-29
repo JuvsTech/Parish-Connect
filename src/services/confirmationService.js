@@ -611,3 +611,6 @@ export async function updateConfirmationRecord(id, data) {
 export async function archiveConfirmationRecord(id, reason) {
   return archiveRecord(COLLECTIONS.CONFIRMATION, id, reason)
 }
+
+// Shared validation for historical imports; existing create/edit behavior is unchanged.
+export { validateConfirmationPayload }

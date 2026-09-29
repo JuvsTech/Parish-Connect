@@ -548,3 +548,6 @@ export async function updateConversionRecord(id, data, options = {}) {
     throw new Error(MESSAGES.ERROR.CONVERSION_UPDATE)
   }
 }
+
+// Shared validation for historical imports; existing create/edit behavior is unchanged.
+export { validateConversionPayload }
