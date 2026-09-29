@@ -3,9 +3,7 @@ import {
   CircularProgress,
   FormControl,
   FormHelperText,
-  InputLabel,
   MenuItem,
-  OutlinedInput,
   Select,
   Stack,
   TextField,
@@ -43,7 +41,6 @@ export default function MinisterField({
   assignment = '',
 }) {
   const reactId = useId()
-  const labelId = `${reactId}-minister-label`
   const selectId = `${reactId}-minister-select`
   const otherNameId = `${reactId}-minister-other-name`
 
@@ -155,17 +152,13 @@ export default function MinisterField({
         error={error || Boolean(loadError)}
         disabled={disabled || loading}
       >
-        <InputLabel id={labelId} shrink htmlFor={selectId}>
-          {label}
-        </InputLabel>
         <Select
-          labelId={labelId}
           id={selectId}
+          inputProps={{ 'aria-label': label }}
           value={loading ? '' : selectValue}
           onChange={handleSelectChange}
           onBlur={showOtherName ? undefined : onBlur}
           displayEmpty
-          input={<OutlinedInput notched label={label} />}
           renderValue={(current) => {
             if (loading) {
               return (

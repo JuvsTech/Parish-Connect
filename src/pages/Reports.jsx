@@ -562,16 +562,13 @@ export default function Reports() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FormControl fullWidth size="small" required>
-                <InputLabel id="report-minister-label">Minister</InputLabel>
                 <Select
-                  labelId="report-minister-label"
-                  label="Minister"
+                  inputProps={{ 'aria-label': 'Minister' }}
                   value={minister ?? ''}
                   onChange={(event) => setMinister(event.target.value || null)}
                   disabled={generating || ministersLoading}
                   error={false}
                   displayEmpty
-                  input={<OutlinedInput notched label="Minister" />}
                   renderValue={(current) => {
                     if (!current) {
                       return (
