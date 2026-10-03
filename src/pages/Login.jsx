@@ -6,6 +6,10 @@ import {
   Button,
   CircularProgress,
   CssBaseline,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Paper,
   Stack,
@@ -21,7 +25,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import InputAdornment from '@mui/material/InputAdornment'
 import { useAuth } from '../contexts/AuthContext'
 import { ABOUT_DEVELOPED_BY } from '../components/AboutDialog'
-import { login } from '../services/authService'
+import { login, resetPassword } from '../services/authService'
 import logo from '../assets/parish-connect-logo.png'
 
 const MARIAN_BLUE = '#0B3D91'
@@ -108,6 +112,22 @@ function getAuthErrorMessage(error) {
   }
 }
 
+function getPasswordResetErrorMessage(error) {
+  switch (error.code) {
+    case 'auth/invalid-email':
+    case 'auth/user-not-found':
+      return 'Email not registered.'
+    case 'auth/too-many-requests':
+      return 'Too many requests. Please wait a while and try again.'
+    case 'auth/network-request-failed':
+      return 'Network error. Check your connection and try again.'
+    case 'auth/operation-not-allowed':
+      return 'Password reset is unavailable right now. Please contact the parish administrator.'
+    default:
+      return 'We could not send the reset email right now. Please try again.'
+  }
+}
+
 export default function Login() {
   const { currentUser, authLoading, loading: authLoadingAlias } = useAuth()
   const initializing = authLoading ?? authLoadingAlias
@@ -118,6 +138,11 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetError, setResetError] = useState('')
+  const [resetSuccess, setResetSuccess] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -132,6 +157,30 @@ export default function Login() {
     } catch (err) {
       setError(getAuthErrorMessage(err))
       setLoading(false)
+    }
+  }
+
+  function openResetDialog() {
+    setResetEmail(email)
+    setResetError('')
+    setResetSuccess(false)
+    setResetDialogOpen(true)
+  }
+
+  async function handleResetSubmit(event) {
+    event.preventDefault()
+    setResetError('')
+    setResetSuccess(false)
+    setResetLoading(true)
+
+    try {
+      await resetPassword(resetEmail.trim())
+      setResetSuccess(true)
+      setEmail(resetEmail.trim())
+    } catch (err) {
+      setResetError(getPasswordResetErrorMessage(err))
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -338,6 +387,22 @@ export default function Login() {
                 />
 
                 <Button
+                  type="button"
+                  onClick={openResetDialog}
+                  disabled={loading}
+                  sx={{
+                    alignSelf: 'center',
+                    mt: -1.5,
+                    px: 0.5,
+                    minWidth: 0,
+                    color: MARIAN_BLUE,
+                    fontWeight: 650,
+                  }}
+                >
+                  Forgot Password?
+                </Button>
+
+                <Button
                   type="submit"
                   variant="contained"
                   fullWidth
@@ -408,6 +473,75 @@ export default function Login() {
             </Box>
           </Stack>
         </Paper>
+
+        <Dialog
+          open={resetDialogOpen}
+          onClose={() => !resetLoading && setResetDialogOpen(false)}
+          fullWidth
+          maxWidth="xs"
+          aria-labelledby="password-reset-title"
+        >
+          <Box component="form" onSubmit={handleResetSubmit}>
+            <DialogTitle id="password-reset-title" sx={{ color: MARIAN_BLUE, fontWeight: 700 }}>
+              Reset your password
+            </DialogTitle>
+            <DialogContent>
+              <Stack spacing={2} sx={{ pt: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Enter the email address associated with your account. We’ll send you a link to reset your password.
+                </Typography>
+                {resetSuccess && (
+                  <Alert severity="success" sx={{ borderRadius: 3 }}>
+                    Request accepted by Firebase Auth. If an account matches, follow the password reset instructions sent by email.
+                  </Alert>
+                )}
+                {resetError && (
+                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                    {resetError}
+                  </Alert>
+                )}
+                {!resetSuccess && (
+                  <TextField
+                    id="reset-email"
+                    label="Email"
+                    type="text"
+                    slotProps={{
+                      htmlInput: { inputMode: 'email' },
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <EmailOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                    value={resetEmail}
+                    onChange={(event) => setResetEmail(event.target.value)}
+                    autoComplete="email"
+                    required
+                    fullWidth
+                    autoFocus
+                    disabled={resetLoading}
+                  />
+                )}
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5 }}>
+              <Button
+                type="button"
+                onClick={() => setResetDialogOpen(false)}
+                disabled={resetLoading}
+              >
+                {resetSuccess ? 'Close' : 'Cancel'}
+              </Button>
+              {!resetSuccess && (
+                <Button type="submit" variant="contained" disabled={resetLoading}>
+                  {resetLoading ? 'Sending…' : 'Send reset link'}
+                </Button>
+              )}
+            </DialogActions>
+          </Box>
+        </Dialog>
 
         <Typography
           variant="caption"
