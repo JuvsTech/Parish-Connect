@@ -13,8 +13,8 @@ async function countRecords(collectionName) {
     if (collectionName === COLLECTIONS.MASS_INTENTIONS) return snapshot.data().count || 0
     const archived = await getCountFromServer(query(collection(db, collectionName), where('archived', '==', true)))
     return (snapshot.data().count || 0) - (archived.data().count || 0)
-  } catch {
-    return 0
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(MESSAGES.ERROR.UNKNOWN)
   }
 }
 

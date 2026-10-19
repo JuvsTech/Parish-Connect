@@ -42,6 +42,7 @@ export const conversionCollectionRef = collection(db, COLLECTIONS.CONVERSION)
  *   pageNumber: number | null,
  *   recordType: 'new' | 'old',
  *   dateOfReception: Timestamp | Date,
+ *   time: string,
  *   receivingMinister: string,
  *   firstName: string,
  *   middleName: string,
@@ -76,6 +77,7 @@ export const CONVERSION_FIELDS = {
   PAGE_NUMBER: 'pageNumber',
   RECORD_TYPE: 'recordType',
   DATE_OF_RECEPTION: 'dateOfReception',
+  TIME: 'time',
   RECEIVING_MINISTER: 'receivingMinister',
   FIRST_NAME: 'firstName',
   MIDDLE_NAME: 'middleName',
@@ -209,6 +211,7 @@ export function buildConversionDocument(data = {}) {
     pageNumber: Number.isInteger(Number(normalized.pageNumber)) && Number(normalized.pageNumber) > 0 ? Number(normalized.pageNumber) : null,
     recordType: normalizeRecordType(normalized.recordType),
     dateOfReception: normalizeDateValue(normalized.dateOfReception),
+    time: normalizeText(normalized.time) || '08:00',
     receivingMinister: toProperCase(normalized.receivingMinister),
     firstName: toProperCase(normalized.firstName),
     middleName: toProperCase(normalized.middleName),
@@ -354,7 +357,7 @@ function buildConversionEventPayload(recordId, record) {
     relatedRecordId: recordId,
     title: `Conversion - ${titleName}`,
     date: record.dateOfReception,
-    time: '08:00',
+    time: record.time || '08:00',
     description: record.observanda || '',
   }
 }
@@ -507,6 +510,7 @@ export async function updateConversionRecord(id, data, options = {}) {
     const payload = {
       ...buildConversionDocument({
         ...normalized,
+        time: normalized.time || currentData.time || '08:00',
         updatedBy: actor,
       }),
       updatedAt: serverTimestamp(),

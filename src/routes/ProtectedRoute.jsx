@@ -84,7 +84,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   }
 
   const status = String(userProfile?.status || '').trim().toLowerCase()
-  if (status && status !== 'active') {
+  if (status !== 'active') {
     return <Navigate to="/unauthorized" replace />
   }
 

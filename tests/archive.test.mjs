@@ -13,6 +13,7 @@ const auth = { currentUser: { uid: 'staff-test', email: 'staff@example.test' } }
 const stamp = { testServerTimestamp: true }
 let reads = 0
 let writes = 0
+let auditId = 0
 let afterRead = null
 const snapshot = (ref) => ({ id: ref.id, exists: () => documents.has(ref.key), data: () => documents.get(ref.key) })
 const matching = (ref) => [...documents.entries()]
@@ -25,6 +26,7 @@ const firestore = {
   query: (ref, ...constraints) => ({ ...ref, constraints }),
   where: (field, operator, value) => { assert.equal(operator, '=='); return { kind: 'where', field, value } },
   orderBy: () => ({ kind: 'order' }), limit: () => ({ kind: 'limit' }),
+  startAfter: (cursor) => ({ kind: 'startAfter', cursor }),
   serverTimestamp: () => stamp,
   getDoc: async (ref) => { reads++; return snapshot(ref) },
   getDocs: async (ref) => { reads++; return { docs: matching(ref) } },
@@ -37,7 +39,10 @@ const firestore = {
     })
     for (const [ref, data] of updates) { writes++; documents.set(ref.key, { ...documents.get(ref.key), ...data }) }
   },
-  addDoc: () => { throw new Error('Unexpected addDoc') },
+  addDoc: async (ref) => {
+    assert.equal(ref.name, 'auditLogs')
+    return { id: `audit-${++auditId}` }
+  },
   updateDoc: () => { throw new Error('Unexpected updateDoc') },
   setDoc: () => { throw new Error('Unexpected setDoc') },
   deleteDoc: () => { throw new Error('Permanent deletion is forbidden in these tests') },

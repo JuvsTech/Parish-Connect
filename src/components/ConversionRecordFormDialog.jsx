@@ -288,6 +288,7 @@ function ConversionRecordFormDialog({
   record = null,
   existingRecords = [],
   defaultSacramentDate = '',
+  defaultSacramentTime = '',
   onClose,
   onSave,
   saving = false,
@@ -426,6 +427,7 @@ function ConversionRecordFormDialog({
         ? record?.recordTypeValue || record?.recordType || 'old'
         : workflow,
       dateOfReception: form.dateOfReception,
+      time: defaultSacramentTime || record?.time || '08:00',
       receivingMinister: form.receivingMinister.trim(),
       firstName: form.firstName.trim(),
       middleName: form.middleName.trim(),

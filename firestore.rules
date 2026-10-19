@@ -28,12 +28,9 @@ service cloud.firestore {
 
     function isActiveUser() {
       return hasUserDoc()
-        && (
-          !userDoc().keys().hasAll(['status'])
-          || !(userDoc().status is string)
-          || userDoc().status == ''
-          || userDoc().status.lower() == 'active'
-        );
+        && userDoc().keys().hasAll(['status'])
+        && userDoc().status is string
+        && userDoc().status.lower() == 'active';
     }
 
     function isAdmin() {
@@ -83,13 +80,71 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    function canDeleteOperationalRecord(collection) {
+      return (collection == 'massIntentions'
+          && !(resource.data.get('status', '') is string
+            && resource.data.get('status', '').lower() in ['offered', 'cancelled']))
+        || collection == 'events';
+    }
+
+    function validArchiveUpdate() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let archiveKeys = ['archived', 'archivedAt', 'archiveReason', 'recoveredAt', 'recoveryReason'];
+      let archiveChanged = changed.hasAny(archiveKeys);
+      let isArchive = resource.data.get('archived', false) != true
+        && request.resource.data.get('archived', false) == true;
+      let isRecovery = resource.data.get('archived', false) == true
+        && request.resource.data.get('archived', false) == false;
+      return (!archiveChanged && resource.data.get('archived', false) != true)
+        || (changed.hasOnly(archiveKeys)
+          && ((isArchive
+              && request.resource.data.archiveReason is string
+              && request.resource.data.archiveReason.matches('.*\\S.*')
+              && request.resource.data.archivedAt is timestamp)
+            || (isRecovery
+              && request.resource.data.recoveryReason is string
+              && request.resource.data.recoveryReason.matches('.*\\S.*')
+              && request.resource.data.recoveredAt is timestamp)));
+    }
+
+    function validMassIntentionStatus() {
+      return request.resource.data.get('status', 'Pending')
+        in ['Pending', 'Scheduled', 'Offered', 'Cancelled'];
+    }
+
     // Parish operational collections — staff/admin only (matches UI guards).
     match /{collection}/{docId} {
-      allow read, write: if isStaffOrAdmin()
+      allow read: if isStaffOrAdmin()
         && collection in [
           'baptism', 'confirmation', 'marriage', 'death', 'conversion',
           'massIntentions', 'events', 'ministers', 'reports'
         ];
+      allow create: if isStaffOrAdmin()
+        && collection in [
+          'baptism', 'confirmation', 'marriage', 'death', 'conversion',
+          'massIntentions', 'events', 'ministers', 'reports'
+        ]
+        && (!(collection in ['baptism', 'confirmation', 'marriage', 'death', 'conversion'])
+          || request.resource.data.get('archived', false) != true)
+        && (collection != 'massIntentions' || validMassIntentionStatus());
+      allow update: if isStaffOrAdmin()
+        && collection in [
+          'baptism', 'confirmation', 'marriage', 'death', 'conversion',
+          'massIntentions', 'events', 'ministers', 'reports'
+        ]
+        && (collection != 'massIntentions'
+          || (validMassIntentionStatus()
+            && !(resource.data.get('status', '') is string
+              && resource.data.get('status', '').lower() in ['offered', 'cancelled'])))
+        && (collection != 'events'
+          || (resource.data.get('source', 'manual')
+              == request.resource.data.get('source', 'manual')
+            && resource.data.get('relatedRecordId', null)
+              == request.resource.data.get('relatedRecordId', null)))
+        && (!(collection in ['baptism', 'confirmation', 'marriage', 'death', 'conversion'])
+          || validArchiveUpdate());
+      allow delete: if isStaffOrAdmin()
+        && canDeleteOperationalRecord(collection);
     }
   }
 }

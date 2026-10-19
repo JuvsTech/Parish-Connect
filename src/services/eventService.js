@@ -118,6 +118,10 @@ function validateManualEventPayload(data) {
   if (!isValidTimeRange(startTime, endTime)) {
     throw new Error(MESSAGES.ERROR.EVENT_END_TIME_INVALID)
   }
+
+  if (toDateKey(date) < toDateKey(new Date())) {
+    throw new Error(MESSAGES.ERROR.EVENT_PAST_LOCKED)
+  }
 }
 
 function isValidTimeRange(startTime, endTime) {
@@ -130,7 +134,7 @@ function isValidTimeRange(startTime, endTime) {
 function parseTimeMinutes(time24) {
   const raw = normalizeText(time24)
   if (!raw) return -1
-  const match = raw.match(/^(\d{1,2}):(\d{2})$/)
+  const match = raw.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
   if (!match) return -1
   return Number(match[1]) * 60 + Number(match[2])
 }
@@ -316,6 +320,7 @@ export async function createEvent(data) {
       error instanceof Error &&
       (error.message === MESSAGES.ERROR.EVENT_REQUIRED_FIELDS ||
         error.message === MESSAGES.ERROR.EVENT_END_TIME_INVALID ||
+        error.message === MESSAGES.ERROR.EVENT_PAST_LOCKED ||
         isEventConflictError(error))
     ) {
       throw error
@@ -374,6 +379,7 @@ export async function updateEvent(id, data) {
       error instanceof Error &&
       (error.message === MESSAGES.ERROR.EVENT_REQUIRED_FIELDS ||
         error.message === MESSAGES.ERROR.EVENT_END_TIME_INVALID ||
+        error.message === MESSAGES.ERROR.EVENT_PAST_LOCKED ||
         error.message.includes('id is required') ||
         isEventConflictError(error))
     ) {
