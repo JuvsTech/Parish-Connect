@@ -99,7 +99,7 @@ May checklist (hal. Birth Certificate, Baptismal Certificate). Ito ay **paalala 
 
 **Para saan?** Pag-manage ng Mass Intention requests at schedules.
 
-**Paano pumunta:** Sidebar → **Mass Intentions**.
+**Paano gumawa:** Sa Dashboard, gamitin ang **Add** menu at piliin ang **Mass Intention**. Ang dating `/mass-intentions` link ay bumabalik na sa Dashboard.
 
 ### Paano gumamit
 

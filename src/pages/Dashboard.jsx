@@ -659,7 +659,12 @@ function SummaryCard({ title, value, icon: Icon }) {
 
 export default function Dashboard() {
   const { currentUser } = useAuth()
-  const today = useMemo(() => startOfDay(new Date()), [])
+  const [today, setToday] = useState(() => startOfDay(new Date()))
+  useEffect(() => {
+    const refreshToday = () => setToday(startOfDay(new Date()))
+    const timer = window.setInterval(refreshToday, 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
   const [viewDate, setViewDate] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   )
@@ -803,19 +808,10 @@ export default function Dashboard() {
     () => getUpcomingEvents(events, selectedDate, 4),
     [events, selectedDate],
   )
-  const todayScheduledCount = useMemo(
-    () => getEventsForDate(events, today).filter(isSacramentalEvent).length,
-    [events, today],
-  )
   const prefillDate = toDateKey(scheduleDate || selectedDate)
   const prefillTime = scheduleTime || ''
 
   const summaryCards = [
-    {
-      title: "Today's Scheduled Sacraments",
-      value: todayScheduledCount,
-      icon: EventAvailableOutlinedIcon,
-    },
     {
       title: 'Baptismal Records',
       value: counts.baptism,

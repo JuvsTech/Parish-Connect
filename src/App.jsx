@@ -16,7 +16,6 @@ const ConfirmationRecords = lazy(() => import('./pages/ConfirmationRecords'))
 const MarriageRecords = lazy(() => import('./pages/MarriageRecords'))
 const DeathRecords = lazy(() => import('./pages/DeathRecords'))
 const ConversionRecords = lazy(() => import('./pages/ConversionRecords'))
-const MassIntentions = lazy(() => import('./pages/MassIntentions'))
 const ManageMinisters = lazy(() => import('./pages/ManageMinisters'))
 const AuditLogs = lazy(() => import('./pages/AuditLogs'))
 const Reports = lazy(() => import('./pages/Reports'))
@@ -81,7 +80,7 @@ const router = createBrowserRouter([
           { path: '/records/death', element: <DeathRecords /> },
           { path: '/records/conversion', element: <ConversionRecords /> },
           { path: '/records/archived', element: <ArchivedRecords /> },
-          { path: '/mass-intentions', element: <MassIntentions /> },
+          { path: '/mass-intentions', element: <Navigate to="/" replace /> },
           { path: '/ministers', element: <ManageMinisters /> },
           {
             path: '/maintenance/ministers',

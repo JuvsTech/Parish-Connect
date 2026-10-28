@@ -41,7 +41,6 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined'
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined'
 import AboutDialog from '../components/AboutDialog'
 import AppFooter from '../components/AppFooter'
 import { useAuth } from '../contexts/AuthContext'
@@ -88,11 +87,6 @@ const SACRAMENTAL_ITEMS = [
 const PRIMARY_ITEMS = [
   { to: '/', label: 'Dashboard', icon: DashboardOutlinedIcon, end: true },
   { to: '/records/archived', label: 'Archived Records', icon: ArchiveOutlinedIcon },
-  {
-    to: '/mass-intentions',
-    label: 'Mass Intentions',
-    icon: AutoAwesomeOutlinedIcon,
-  },
   {
     to: '/ministers',
     label: 'Manage Ministers',

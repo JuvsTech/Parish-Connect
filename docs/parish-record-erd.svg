@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1840" height="1200" viewBox="0 0 1840 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Parish Record Management System ERD</title>
+  <desc id="desc">Plain monochrome entity relationship diagram with crow's foot notation. The solid USERS to AUDIT_LOGS relationship is confirmed. Dashed relationships are logical references.</desc>
+  <defs>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #000; }
+      .heading { font-size: 22px; font-weight: 700; }
+      .entity { fill: #fff; stroke: #000; stroke-width: 1.8; }
+      .entity-name { font-size: 15px; font-weight: 700; }
+      .attr { font-size: 13px; }
+      .line { fill: none; stroke: #000; stroke-width: 1.8; }
+      .dash { fill: none; stroke: #000; stroke-width: 1.7; stroke-dasharray: 7 5; }
+      .symbol { fill: none; stroke: #000; stroke-width: 1.7; }
+    </style>
+  </defs>
+  <rect width="1840" height="1200" fill="#fff"/>
+  <text x="920" y="38" text-anchor="middle" class="heading">PARISH RECORD MANAGEMENT SYSTEM — ENTITY RELATIONSHIP DIAGRAM</text>
+
+  <!-- Confirmed relationship: USERS (one) to AUDIT_LOGS (many). -->
+  <path class="line" d="M410 122 H500"/>
+  <path class="line" d="M420 112 V132"/>
+  <path class="line" d="M500 122 L515 112 M500 122 L515 122 M500 122 L515 132"/>
+
+  <!-- USER and AUDIT tables -->
+  <g transform="translate(90 75)">
+    <rect class="entity" width="320" height="150"/><path class="line" d="M0 34 H320"/>
+    <text x="205" y="23" text-anchor="middle" class="entity-name">USERS</text>
+    <text x="14" y="60" class="attr"><tspan font-weight="700">PK</tspan><tspan>  uid</tspan></text>
+    <text x="14" y="83" class="attr">email</text><text x="14" y="106" class="attr">displayName</text><text x="14" y="129" class="attr">role</text>
+  </g>
+  <g transform="translate(515 75)">
+    <rect class="entity" width="350" height="173"/><path class="line" d="M0 34 H350"/>
+    <text x="237" y="23" text-anchor="middle" class="entity-name">AUDIT_LOGS</text>
+    <text x="14" y="60" class="attr"><tspan font-weight="700">PK</tspan><tspan>  auditLogId</tspan></text>
+    <text x="14" y="83" class="attr"><tspan font-weight="700">FK</tspan><tspan>  performedByUid</tspan></text>
+    <text x="14" y="106" class="attr">action</text><text x="14" y="129" class="attr">module</text><text x="14" y="152" class="attr">timestamp</text>
+  </g>
+
+  <!-- Left side: sacramental record entities, aligned to the EVENTS relationship anchors. -->
+  <g transform="translate(75 285)">
+    <rect class="entity" width="320" height="143"/><path class="line" d="M0 34 H320"/><text x="205" y="23" text-anchor="middle" class="entity-name">BAPTISM</text>
+    <text x="14" y="59" class="attr"><tspan font-weight="700">PK</tspan><tspan>  baptismId</tspan></text><text x="14" y="82" class="attr">childName</text><text x="14" y="105" class="attr">baptismDate</text><text x="14" y="128" class="attr">minister</text>
+  </g>
+  <g transform="translate(75 455)">
+    <rect class="entity" width="320" height="143"/><path class="line" d="M0 34 H320"/><text x="232" y="23" text-anchor="middle" class="entity-name">CONFIRMATION</text>
+    <text x="14" y="59" class="attr"><tspan font-weight="700">PK</tspan><tspan>  confirmationId</tspan></text><text x="14" y="82" class="attr">personName</text><text x="14" y="105" class="attr">confirmationDate</text><text x="14" y="128" class="attr">minister</text>
+  </g>
+  <g transform="translate(75 625)">
+    <rect class="entity" width="320" height="143"/><path class="line" d="M0 34 H320"/><text x="210" y="23" text-anchor="middle" class="entity-name">MARRIAGE</text>
+    <text x="14" y="59" class="attr"><tspan font-weight="700">PK</tspan><tspan>  marriageId</tspan></text><text x="14" y="82" class="attr">spouses</text><text x="14" y="105" class="attr">marriageDate</text><text x="14" y="128" class="attr">minister</text>
+  </g>
+  <g transform="translate(75 795)">
+    <rect class="entity" width="320" height="143"/><path class="line" d="M0 34 H320"/><text x="195" y="23" text-anchor="middle" class="entity-name">DEATH</text>
+    <text x="14" y="59" class="attr"><tspan font-weight="700">PK</tspan><tspan>  deathId</tspan></text><text x="14" y="82" class="attr">personName</text><text x="14" y="105" class="attr">deathDate</text><text x="14" y="128" class="attr">minister</text>
+  </g>
+  <g transform="translate(75 965)">
+    <rect class="entity" width="320" height="143"/><path class="line" d="M0 34 H320"/><text x="222" y="23" text-anchor="middle" class="entity-name">CONVERSION</text>
+    <text x="14" y="59" class="attr"><tspan font-weight="700">PK</tspan><tspan>  conversionId</tspan></text><text x="14" y="82" class="attr">personName</text><text x="14" y="105" class="attr">conversionDate</text><text x="14" y="128" class="attr">receivingMinister</text>
+  </g>
+
+  <!-- EVENTS centered. Its source determines the target of relatedRecordId. -->
+  <g transform="translate(700 345)">
+    <rect class="entity" width="330" height="760"/><path class="line" d="M0 34 H330"/><text x="202" y="23" text-anchor="middle" class="entity-name">EVENTS</text>
+    <text x="14" y="62" class="attr"><tspan font-weight="700">PK</tspan><tspan>  eventId</tspan></text>
+    <text x="14" y="88" class="attr">title</text><text x="14" y="114" class="attr">date</text><text x="14" y="140" class="attr">time</text>
+    <text x="14" y="166" class="attr">source</text><text x="14" y="192" class="attr">relatedRecordId</text>
+    <path class="line" d="M0 220 H330"/>
+    <text x="14" y="248" class="attr" font-weight="700">source value maps relatedRecordId to:</text>
+    <text x="14" y="280" class="attr">baptism : BAPTISM</text>
+    <text x="14" y="309" class="attr">confirmation : CONFIRMATION</text>
+    <text x="14" y="338" class="attr">marriage : MARRIAGE</text>
+    <text x="14" y="367" class="attr">death : DEATH</text>
+    <text x="14" y="396" class="attr">conversion : CONVERSION</text>
+    <text x="14" y="425" class="attr">massIntention : MASS_INTENTIONS</text>
+  </g>
+
+  <!-- Dashed polymorphic references. One record to zero-or-one event: circle/bar at event end. -->
+  <path class="dash" d="M395 356 H700"/>
+  <path class="dash" d="M395 526 H700"/>
+  <path class="dash" d="M395 696 H700"/>
+  <path class="dash" d="M395 866 H700"/>
+  <path class="dash" d="M395 1036 H700"/>
+  <!-- one marker at source record ends -->
+  <path class="symbol" d="M405 346 V366 M405 516 V536 M405 686 V706 M405 856 V876 M405 1026 V1046"/>
+  <!-- optional-one markers at EVENTS ends -->
+  <circle cx="680" cy="356" r="5" fill="#fff" stroke="#000" stroke-width="1.7"/><path class="symbol" d="M692 346 V366"/>
+  <circle cx="680" cy="526" r="5" fill="#fff" stroke="#000" stroke-width="1.7"/><path class="symbol" d="M692 516 V536"/>
+  <circle cx="680" cy="696" r="5" fill="#fff" stroke="#000" stroke-width="1.7"/><path class="symbol" d="M692 686 V706"/>
+  <circle cx="680" cy="866" r="5" fill="#fff" stroke="#000" stroke-width="1.7"/><path class="symbol" d="M692 856 V876"/>
+  <circle cx="680" cy="1036" r="5" fill="#fff" stroke="#000" stroke-width="1.7"/><path class="symbol" d="M692 1026 V1046"/>
+
+  <!-- Right side: logical minister reference to mass intentions. -->
+  <g transform="translate(1190 600)">
+    <rect class="entity" width="340" height="165"/><path class="line" d="M0 34 H340"/><text x="247" y="23" text-anchor="middle" class="entity-name">MASS_INTENTIONS</text>
+    <text x="14" y="60" class="attr"><tspan font-weight="700">PK</tspan><tspan>  massIntentionId</tspan></text><text x="14" y="84" class="attr">intention</text><text x="14" y="108" class="attr">massDate</text><text x="14" y="132" class="attr">celebrantId</text>
+  </g>
+  <g transform="translate(1610 600)">
+    <rect class="entity" width="220" height="142"/><path class="line" d="M0 34 H220"/><text x="155" y="23" text-anchor="middle" class="entity-name">MINISTERS</text>
+    <text x="14" y="60" class="attr"><tspan font-weight="700">PK</tspan><tspan>  ministerId</tspan></text><text x="14" y="84" class="attr">name</text><text x="14" y="108" class="attr">title</text><text x="14" y="132" class="attr">status</text>
+  </g>
+  <!-- One MINISTER, zero or many MASS_INTENTIONS. -->
+  <path class="dash" d="M1530 682 H1610"/>
+  <path class="symbol" d="M1595 672 V692"/>
+  <path class="symbol" d="M1550 672 L1535 682 M1550 682 L1535 682 M1550 692 L1535 682"/>
+  <!-- MASS_INTENTIONS to EVENTS: logical, one intention to zero-or-one event. -->
+  <path class="dash" d="M1030 696 H1190"/>
+  <circle cx="1042" cy="696" r="5" fill="#fff" stroke="#000" stroke-width="1.7"/>
+  <path class="symbol" d="M1054 686 V706 M1200 686 V706"/>
+
+  <!-- REPORTS is standalone; generatedBy is a string, not a user FK. -->
+  <g transform="translate(1190 900)">
+    <rect class="entity" width="340" height="190"/><path class="line" d="M0 34 H340"/><text x="222" y="23" text-anchor="middle" class="entity-name">REPORTS</text>
+    <text x="14" y="60" class="attr"><tspan font-weight="700">PK</tspan><tspan>  reportId</tspan></text><text x="14" y="84" class="attr">reportName</text><text x="14" y="108" class="attr">reportType</text><text x="14" y="132" class="attr">generatedBy</text><text x="14" y="156" class="attr">generatedDate</text>
+  </g>
+
+  <!-- Minimal line-type key -->
+  <path class="line" d="M90 1150 H150"/><text x="162" y="1155" class="attr">confirmed foreign key</text>
+  <path class="dash" d="M370 1150 H430"/><text x="442" y="1155" class="attr">logical reference</text>
+</svg>

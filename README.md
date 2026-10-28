@@ -70,3 +70,7 @@ The system was created to help the parish office organize, manage, and easily re
 Parish Connect aims to provide the parish office with a more organized and convenient way of managing sacramental records and parish schedules.
 
 The system helps reduce the difficulty of manually searching through physical records and provides easier access to important parish information.
+
+## System Documentation
+
+See [System Documentation](SYSTEM_DOCUMENTATION.md) for the source-verified implementation details and [Diagram Descriptions](docs/diagram-descriptions.md) for explanations of the ERD entities, process flowcharts, and use-case diagram.

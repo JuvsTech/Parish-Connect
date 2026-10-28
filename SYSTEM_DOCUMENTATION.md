@@ -270,7 +270,7 @@ Defined in `src/App.jsx`. All page components load via `React.lazy` and `Suspens
 | `/records/death` | Death Records | Admin, Staff |
 | `/records/conversion` | Conversion Records | Admin, Staff |
 | `/records/archived` | Archived Records | Admin, Staff; current-password verification before archive queries/display |
-| `/mass-intentions` | Mass Intentions | Admin, Staff |
+| `/mass-intentions` | Redirect to Dashboard | Admin, Staff |
 | `/ministers` | Manage Ministers | Admin, Staff |
 | `/maintenance/ministers` | Redirect → `/ministers` | Admin, Staff |
 | `/reports` | Reports | Admin, Staff |
