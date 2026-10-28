@@ -16,13 +16,14 @@ export const ABOUT_DEVELOPED_BY = 'Parish Connect Team Developers'
 export const ABOUT_SPECIAL_THANKS = ' Prof. John Vianney V. Manuel'
 
 const DEVELOPERS = [
-  { name: 'Renz Rafael Veloria', role: 'Project Leader' },
   { name: 'Mark Juven Neypes', role: 'Lead Full-Stack Developer' },
   { name: 'Jerome Noblado', role: 'Quality Tester' }
 ]
 
 const DOCUMENTATION_TEAM = [
+
   { name: 'Janemell Renzae Clavero', role: 'Documentation Leader' },
+    { name: 'Renz Rafael Veloria', role: 'Data Gathering' },
   { name: 'Jan Karlo Navarrete', role: 'Data Gathering' },
   { name: 'Daren Tobias', role: 'Data Gathering' },
   { name: 'Nelson Valix', role: 'Data Gathering' }
